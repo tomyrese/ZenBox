@@ -8,6 +8,7 @@
     <UseWPF>true</UseWPF>
     <AssemblyName>ZenBox</AssemblyName>
     <RootNamespace>ZenBox</RootNamespace>
+    <ApplicationIcon>Assets\zenbox.ico</ApplicationIcon>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <VlcWindowsX64Enabled>true</VlcWindowsX64Enabled>
     <VlcWindowsX86Enabled>false</VlcWindowsX86Enabled>
@@ -31,6 +32,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Resource Include="Assets\zenbox.ico" />
     <Content Include="Assets\Extensions\uBlock\**\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>

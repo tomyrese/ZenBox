@@ -63,63 +63,6 @@ public sealed class WebBrowserService : IDisposable
             };
             injectAppStyle();
             document.addEventListener('DOMContentLoaded', injectAppStyle);
-
-            // Tự động phóng toàn màn hình ngay khi người dùng bấm chọn bất kỳ video nào trên YouTube!
-            if (location.hostname.includes('youtube.com')) {
-                let lastAutoFsVideoId = '';
-                const tryEnterYouTubeFullscreen = () => {
-                    if (location.pathname !== '/watch') {
-                        lastAutoFsVideoId = '';
-                        return;
-                    }
-                    const vid = new URLSearchParams(location.search).get('v') || '';
-                    if (!vid || vid === lastAutoFsVideoId) return;
-
-                    let attempts = 0;
-                    const timer = setInterval(() => {
-                        attempts++;
-                        if (location.pathname !== '/watch' || attempts > 28) {
-                            clearInterval(timer);
-                            return;
-                        }
-                        if (document.fullscreenElement) {
-                            lastAutoFsVideoId = vid;
-                            clearInterval(timer);
-                            return;
-                        }
-                        const activeTag = document.activeElement ? document.activeElement.tagName : '';
-                        if (activeTag === 'INPUT' || activeTag === 'TEXTAREA' || document.activeElement?.isContentEditable) {
-                            return;
-                        }
-
-                        const player = document.getElementById('movie_player');
-                        const fsBtn = document.querySelector('.ytp-fullscreen-button');
-                        const videoEl = document.querySelector('video.html5-main-video');
-
-                        if (player && videoEl && videoEl.readyState >= 1) {
-                            lastAutoFsVideoId = vid;
-                            clearInterval(timer);
-                            try {
-                                if (typeof player.toggleFullscreen === 'function' && !player.classList.contains('ytp-fullscreen')) {
-                                    player.toggleFullscreen();
-                                } else if (fsBtn && !player.classList.contains('ytp-fullscreen')) {
-                                    fsBtn.click();
-                                }
-                            } catch (e) {}
-
-                            setTimeout(() => {
-                                if (!document.fullscreenElement && location.pathname === '/watch') {
-                                    window.chrome?.webview?.postMessage('YT_AUTO_FULLSCREEN');
-                                }
-                            }, 280);
-                        }
-                    }, 120);
-                };
-
-                window.addEventListener('yt-navigate-finish', tryEnterYouTubeFullscreen);
-                window.addEventListener('popstate', tryEnterYouTubeFullscreen);
-                document.addEventListener('DOMContentLoaded', tryEnterYouTubeFullscreen);
-            }
         })();
         """;
 
@@ -144,19 +87,8 @@ public sealed class WebBrowserService : IDisposable
     public event EventHandler<bool>? FullscreenStateChanged;
     public event EventHandler? PoolCountChanged;
 
-    private const uint WM_KEYDOWN = 0x0100;
-    private const uint WM_KEYUP = 0x0101;
-    private const int VK_F = 0x46;
-
-    [DllImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool PostMessageW(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
-
-    [DllImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool EnumChildWindows(IntPtr hWndParent, EnumWindowsProc lpEnumFunc, IntPtr lParam);
-
-    private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+    private string _lastAutoFullscreenYoutubeId = string.Empty;
+    private CancellationTokenSource? _ytFullscreenCts;
 
     public WebBrowserService(
         ErrorHandlingService errorService,
@@ -456,14 +388,12 @@ public sealed class WebBrowserService : IDisposable
             }
         };
 
-        core.WebMessageReceived += (_, args) =>
+        // Tự động phóng toàn màn hình bằng giao thức phần cứng Chromium DevTools (CDP Trusted Click) mỗi khi bấm mở video YouTube!
+        core.SourceChanged += (_, _) =>
         {
-            var msg = args.TryGetWebMessageAsString();
-            if (string.Equals(msg, "YT_AUTO_FULLSCREEN", StringComparison.Ordinal) &&
-                webView.Visibility == Visibility.Visible &&
-                !core.ContainsFullScreenElement)
+            if (section == AppSection.YouTube && webView.Visibility == Visibility.Visible)
             {
-                SendYoutubeFullscreenShortcut(webView);
+                TriggerYouTubeAutoFullscreen(core);
             }
         };
 
@@ -700,30 +630,151 @@ public sealed class WebBrowserService : IDisposable
         }
     }
 
-    private static void SendYoutubeFullscreenShortcut(WebView2 webView)
+    private void TriggerYouTubeAutoFullscreen(CoreWebView2 core)
     {
+        var currentUrl = core.Source;
+        if (string.IsNullOrWhiteSpace(currentUrl) || !Uri.TryCreate(currentUrl, UriKind.Absolute, out var uri))
+        {
+            return;
+        }
+
+        if (!uri.Host.EndsWith("youtube.com", StringComparison.OrdinalIgnoreCase) ||
+            !string.Equals(uri.AbsolutePath, "/watch", StringComparison.OrdinalIgnoreCase))
+        {
+            _lastAutoFullscreenYoutubeId = string.Empty;
+            _ytFullscreenCts?.Cancel();
+            return;
+        }
+
+        var videoId = ExtractQueryParam(uri.Query, "v");
+        if (string.IsNullOrWhiteSpace(videoId) ||
+            string.Equals(videoId, _lastAutoFullscreenYoutubeId, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _ytFullscreenCts?.Cancel();
+        _ytFullscreenCts = new CancellationTokenSource();
+        var token = _ytFullscreenCts.Token;
+
+        _ = AutoClickYouTubeFullscreenViaCdpAsync(core, videoId, token);
+    }
+
+    private async Task AutoClickYouTubeFullscreenViaCdpAsync(CoreWebView2 core, string videoId, CancellationToken token)
+    {
+        const string locateFsButtonJs = """
+            (() => {
+                if (document.fullscreenElement || document.querySelector('.ytp-fullscreen')) return 'ALREADY_FS';
+                const tag = document.activeElement ? document.activeElement.tagName : '';
+                if (tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement?.isContentEditable) return 'TYPING';
+                const btn = document.querySelector('.ytp-fullscreen-button');
+                if (!btn) return 'WAIT';
+                const r = btn.getBoundingClientRect();
+                if (r.width < 4 || r.height < 4) return 'WAIT';
+                return Math.round(r.left + r.width / 2) + ',' + Math.round(r.top + r.height / 2);
+            })()
+            """;
+
         try
         {
-            webView.Focus();
-            var parentHwnd = webView.Handle;
-            if (parentHwnd == IntPtr.Zero)
+            for (int attempt = 0; attempt < 35; attempt++)
             {
-                return;
+                if (token.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                if (core.ContainsFullScreenElement)
+                {
+                    _lastAutoFullscreenYoutubeId = videoId;
+                    return;
+                }
+
+                var rawResult = await core.ExecuteScriptAsync(locateFsButtonJs);
+                var clean = rawResult?.Trim('"');
+
+                if (clean == "ALREADY_FS")
+                {
+                    _lastAutoFullscreenYoutubeId = videoId;
+                    return;
+                }
+
+                if (!string.IsNullOrWhiteSpace(clean) && clean.Contains(','))
+                {
+                    var parts = clean.Split(',');
+                    if (parts.Length == 2 &&
+                        int.TryParse(parts[0], out int x) &&
+                        int.TryParse(parts[1], out int y))
+                    {
+                        // Gửi thao tác click chuột cấp độ trình điều khiển Chromium (isTrusted = true, có UserActivation thật 100%) mà không làm lệch con trỏ chuột ngoài đời!
+                        await core.CallDevToolsProtocolMethodAsync(
+                            "Input.dispatchMouseEvent",
+                            $$"""{"type":"mouseMoved","x":{{x}},"y":{{y}}}""");
+                        await core.CallDevToolsProtocolMethodAsync(
+                            "Input.dispatchMouseEvent",
+                            $$"""{"type":"mousePressed","x":{{x}},"y":{{y}},"button":"left","clickCount":1}""");
+                        await core.CallDevToolsProtocolMethodAsync(
+                            "Input.dispatchMouseEvent",
+                            $$"""{"type":"mouseReleased","x":{{x}},"y":{{y}},"button":"left","clickCount":1}""");
+
+                        await Task.Delay(280, token);
+                        if (core.ContainsFullScreenElement)
+                        {
+                            _lastAutoFullscreenYoutubeId = videoId;
+                            return;
+                        }
+
+                        // Dự phòng tầng 2: Nếu có lớp thông báo che nút góc dưới phải, kích hoạt phím tắt 'f' chuẩn của trình phát YouTube qua giao thức CDP Trusted Key!
+                        _ = await core.ExecuteScriptAsync("document.getElementById('movie_player')?.focus();");
+                        await core.CallDevToolsProtocolMethodAsync(
+                            "Input.dispatchKeyEvent",
+                            """{"type":"rawKeyDown","windowsVirtualKeyCode":70,"nativeVirtualKeyCode":70,"key":"f","code":"KeyF"}""");
+                        await core.CallDevToolsProtocolMethodAsync(
+                            "Input.dispatchKeyEvent",
+                            """{"type":"char","text":"f","unmodifiedText":"f","key":"f","code":"KeyF"}""");
+                        await core.CallDevToolsProtocolMethodAsync(
+                            "Input.dispatchKeyEvent",
+                            """{"type":"keyUp","windowsVirtualKeyCode":70,"nativeVirtualKeyCode":70,"key":"f","code":"KeyF"}""");
+
+                        await Task.Delay(280, token);
+                        if (core.ContainsFullScreenElement)
+                        {
+                            _lastAutoFullscreenYoutubeId = videoId;
+                            return;
+                        }
+                    }
+                }
+
+                await Task.Delay(220, token);
             }
-
-            IntPtr deepestChild = parentHwnd;
-            EnumChildWindows(parentHwnd, (child, _) =>
-            {
-                deepestChild = child;
-                return true;
-            }, IntPtr.Zero);
-
-            PostMessageW(deepestChild, WM_KEYDOWN, (IntPtr)VK_F, IntPtr.Zero);
-            PostMessageW(deepestChild, WM_KEYUP, (IntPtr)VK_F, IntPtr.Zero);
         }
-        catch
+        catch (OperationCanceledException)
         {
         }
+        catch (Exception ex)
+        {
+            _errorService.LogError(ErrorCategory.WebLoadFailed, "AutoClickYouTubeFullscreenViaCdpAsync", ex);
+        }
+    }
+
+    private static string? ExtractQueryParam(string query, string key)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return null;
+        }
+
+        var trimmed = query.TrimStart('?');
+        foreach (var pair in trimmed.Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var kv = pair.Split('=', 2);
+            if (kv.Length == 2 && string.Equals(kv[0], key, StringComparison.OrdinalIgnoreCase))
+            {
+                return Uri.UnescapeDataString(kv[1]);
+            }
+        }
+
+        return null;
     }
 
     public void HideAllTabs()

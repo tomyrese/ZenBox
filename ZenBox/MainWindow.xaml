@@ -5,6 +5,7 @@
         xmlns:views="clr-namespace:ZenBox.Views"
         xmlns:controls="clr-namespace:ZenBox.Controls"
         Title="ZenBox"
+        Icon="pack://application:,,,/Assets/zenbox.ico"
         WindowStyle="None"
         WindowState="Maximized"
         ResizeMode="NoResize"

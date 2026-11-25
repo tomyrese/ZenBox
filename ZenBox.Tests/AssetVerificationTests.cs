@@ -41,6 +41,32 @@ public sealed class AssetVerificationTests
         Assert.True(File.Exists(sourceManifestPath));
     }
 
+    [Fact]
+    public void ApplicationIcon_ShouldExistAndHaveValidIcoHeader()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        string? icoPath = null;
+        while (dir is not null)
+        {
+            var candidate = Path.Combine(dir.FullName, "ZenBox", "Assets", "zenbox.ico");
+            if (File.Exists(candidate))
+            {
+                icoPath = candidate;
+                break;
+            }
+            dir = dir.Parent;
+        }
+
+        Assert.NotNull(icoPath);
+        var bytes = File.ReadAllBytes(icoPath!);
+        Assert.True(bytes.Length > 1000);
+        // Header chuẩn ICO: 00 00 01 00
+        Assert.Equal(0, bytes[0]);
+        Assert.Equal(0, bytes[1]);
+        Assert.Equal(1, bytes[2]);
+        Assert.Equal(0, bytes[3]);
+    }
+
     [Theory]
     [InlineData("https://googleads.g.doubleclick.net/pagead/ads", true)]
     [InlineData("https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js", true)]
