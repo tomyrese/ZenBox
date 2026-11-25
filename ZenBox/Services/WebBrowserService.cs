@@ -618,13 +618,16 @@ public sealed class WebBrowserService : IDisposable
         }
     }
 
-    public void NavigateActiveTabBack()
+    public bool TryNavigateActiveTabBack()
     {
         var active = _browserPool.Values.FirstOrDefault(v => v.Visibility == Visibility.Visible);
         if (active?.CoreWebView2?.CanGoBack == true)
         {
             active.CoreWebView2.GoBack();
+            return true;
         }
+
+        return false;
     }
 
     public void ReloadActiveTab()

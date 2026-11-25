@@ -81,7 +81,10 @@ public sealed partial class WebContainerViewModel : ObservableObject
     [RelayCommand]
     private void GoBack()
     {
-        _browserService.NavigateActiveTabBack();
+        if (!_browserService.TryNavigateActiveTabBack())
+        {
+            _goHomeCallback();
+        }
     }
 
     [RelayCommand]

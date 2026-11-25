@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
@@ -16,6 +17,9 @@ public sealed partial class SoundPresetOption : ObservableObject
     public required AudioPreset Preset { get; init; }
     public required string Title { get; init; }
     public required string Description { get; init; }
+    public required Geometry IconGeometry { get; init; }
+    public required Brush IconBrush { get; init; }
+    public required Brush IconBgBrush { get; init; }
 
     [ObservableProperty]
     private bool _isSelected;
@@ -59,6 +63,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     private int _maxCachedWebApps;
 
     [ObservableProperty]
+    private int _selectedSleepMinutes;
+
+    [ObservableProperty]
     private string _moviesFolderPath;
 
     [ObservableProperty]
@@ -87,10 +94,40 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public ObservableCollection<SoundPresetOption> SoundPresets { get; } = [];
 
+    // Trạng thái chọn chuyên mục bên trái
     public bool IsAudioCategory => ActiveCategoryIndex == 0;
     public bool IsCinemaCategory => ActiveCategoryIndex == 1;
     public bool IsPerformanceCategory => ActiveCategoryIndex == 2;
     public bool IsSystemCategory => ActiveCategoryIndex == 3;
+
+    // Trạng thái nút đang chọn của Chế độ Bảo vệ mắt
+    public bool IsEyeCareOff => SelectedEyeCare == EyeCareMode.Off;
+    public bool IsEyeCareWarmSoft => SelectedEyeCare == EyeCareMode.WarmSoft;
+    public bool IsEyeCareDeepNight => SelectedEyeCare == EyeCareMode.DeepNight;
+
+    // Trạng thái nút đang chọn của Tỷ lệ khung hình
+    public bool IsAspectAuto => string.Equals(SelectedAspectRatio, "AUTO", StringComparison.OrdinalIgnoreCase);
+    public bool IsAspect169 => string.Equals(SelectedAspectRatio, "16:9", StringComparison.OrdinalIgnoreCase);
+    public bool IsAspect219 => string.Equals(SelectedAspectRatio, "21:9", StringComparison.OrdinalIgnoreCase);
+
+    // Trạng thái nút đang chọn của Tốc độ phát
+    public bool IsSpeed075 => Math.Abs(SelectedPlaybackSpeed - 0.75) < 0.05;
+    public bool IsSpeed100 => Math.Abs(SelectedPlaybackSpeed - 1.0) < 0.05;
+    public bool IsSpeed125 => Math.Abs(SelectedPlaybackSpeed - 1.25) < 0.05;
+    public bool IsSpeed150 => Math.Abs(SelectedPlaybackSpeed - 1.5) < 0.05;
+
+    // Trạng thái nút đang chọn của Giới hạn ứng dụng giữ nền
+    public bool IsMaxApps2 => MaxCachedWebApps == 2;
+    public bool IsMaxApps4 => MaxCachedWebApps == 4;
+    public bool IsMaxApps6 => MaxCachedWebApps == 6;
+    public bool IsMaxApps8 => MaxCachedWebApps == 8;
+
+    // Trạng thái nút đang chọn của Hẹn giờ tự nghỉ
+    public bool IsSleep0 => SelectedSleepMinutes == 0;
+    public bool IsSleep15 => SelectedSleepMinutes == 15;
+    public bool IsSleep30 => SelectedSleepMinutes == 30;
+    public bool IsSleep60 => SelectedSleepMinutes == 60;
+    public bool IsSleep90 => SelectedSleepMinutes == 90;
 
     public string CurrentEyeCareLabel => SelectedEyeCare switch
     {
@@ -129,7 +166,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         _moviesFolderPath = current.MoviesFolderPath;
         _musicFolderPath = current.MusicFolderPath;
         _startWithWindows = current.StartWithWindows;
-        _selectedAspectRatio = current.DefaultAspectRatio;
+        _selectedAspectRatio = string.IsNullOrWhiteSpace(current.DefaultAspectRatio) ? "AUTO" : current.DefaultAspectRatio;
         _selectedPlaybackSpeed = current.DefaultPlaybackSpeed <= 0 ? 1.0 : current.DefaultPlaybackSpeed;
         _autoResumeVideos = current.AutoResumeVideos;
         _selectedEyeCare = current.EyeCare;
@@ -140,11 +177,15 @@ public sealed partial class SettingsViewModel : ObservableObject
 
         foreach (var preset in Enum.GetValues<AudioPreset>())
         {
+            var (geo, iconHex, bgHex) = GetPresetVisuals(preset);
             SoundPresets.Add(new SoundPresetOption
             {
                 Preset = preset,
                 Title = AudioPresetCatalog.GetDisplayName(preset),
                 Description = AudioPresetCatalog.GetDescription(preset),
+                IconGeometry = geo,
+                IconBrush = CreateBrush(iconHex),
+                IconBgBrush = CreateBrush(bgHex),
                 IsSelected = preset == current.SoundPreset
             });
         }
@@ -152,6 +193,41 @@ public sealed partial class SettingsViewModel : ObservableObject
         _webBrowserService.PoolCountChanged += (_, _) => RefreshSystemDiagnostics();
         RefreshSystemDiagnostics();
     }
+
+    private static SolidColorBrush CreateBrush(string hex)
+    {
+        var b = new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex));
+        b.Freeze();
+        return b;
+    }
+
+    private static (Geometry Geo, string IconHex, string BgHex) GetPresetVisuals(AudioPreset preset) => preset switch
+    {
+        AudioPreset.Balanced => (
+            Geometry.Parse("M3,17 L3,19 L9,19 L9,17 Z M3,5 L3,7 L13,7 L13,5 Z M13,21 L13,19 L21,19 L21,17 L13,17 L13,15 L11,15 L11,21 Z M7,9 L7,11 L3,11 L3,13 L7,13 L7,15 L9,15 L9,9 Z M21,13 L21,11 L11,11 L11,13 Z M15,9 L17,9 L17,7 L21,7 L21,5 L17,5 L17,3 L15,3 Z"),
+            "#38BDF8",
+            "#2438BDF8"),
+        AudioPreset.CinemaSurround => (
+            Geometry.Parse("M18,4 L20,8 L17,8 L15,4 L13,4 L15,8 L12,8 L10,4 L8,4 L10,8 L7,8 L5,4 L4,4 C2.9,4 2,4.9 2,6 L2,18 C2,19.1 2.9,20 4,20 L20,20 C21.1,20 22,19.1 22,18 L22,4 Z M10,17.5 L10,10.5 L16,14 Z"),
+            "#FBBF24",
+            "#24FBBF24"),
+        AudioPreset.ClearVoice => (
+            Geometry.Parse("M12,14 C13.66,14 15,12.66 15,11 L15,5 C15,3.34 13.66,2 12,2 C10.34,2 9,3.34 9,5 L9,11 C9,12.66 10.34,14 12,14 Z M17.91,11 C17.42,11 17.01,11.36 16.93,11.85 C16.52,14.2 14.47,16 12,16 C9.53,16 7.48,14.2 7.07,11.85 C6.99,11.36 6.58,11 6.09,11 C5.48,11 5.01,11.54 5.1,12.14 C5.59,15.14 7.97,17.51 11,17.92 L11,21 L13,21 L13,17.92 C16.03,17.51 18.41,15.14 18.9,12.14 C18.99,11.54 18.52,11 17.91,11 Z"),
+            "#34D399",
+            "#2434D399"),
+        AudioPreset.WarmBolero => (
+            Geometry.Parse("M12,3 L12,13.55 C11.41,13.21 10.73,13 10,13 C7.79,13 6,14.79 6,17 C6,19.21 7.79,21 10,21 C12.21,21 14,19.21 14,17 L14,7 L18,7 L18,3 Z"),
+            "#F472B6",
+            "#24F472B6"),
+        AudioPreset.BassBoost => (
+            Geometry.Parse("M17,2 L7,2 C5.9,2 5,2.9 5,4 L5,20 C5,21.1 5.9,22 7,22 L17,22 C18.1,22 19,21.1 19,20 L19,4 C19,2.9 18.1,2 17,2 Z M12,5 C13.1,5 14,5.9 14,7 C14,8.1 13.1,9 12,9 C10.9,9 10,8.1 10,7 C10,5.9 10.9,5 12,5 Z M12,19 C9.79,19 8,17.21 8,15 C8,12.79 9.79,11 12,11 C14.21,11 16,12.79 16,15 C16,17.21 14.21,19 12,19 Z M12,13 C10.9,13 10,13.9 10,15 C10,16.1 10.9,17 12,17 C13.1,17 14,16.1 14,15 C14,13.9 13.1,13 12,13 Z"),
+            "#A855F7",
+            "#26A855F7"),
+        _ => (
+            Geometry.Parse("M12.3,4.9 C12.7,4.2 13,3.4 13,2.5 C13,2.3 13,2.2 13,2 C8.1,2.5 4.2,6.8 4.2,12 C4.2,17.5 8.7,22 14.2,22 C18.4,22 21.9,19.4 23.4,15.8 C22.8,16 22.1,16.1 21.4,16.1 C15.9,16.1 11.4,11.6 11.4,6.1 C11.4,5.7 11.8,5.3 12.3,4.9 Z"),
+            "#FCD34D",
+            "#24FCD34D")
+    };
 
     public void RefreshSystemDiagnostics()
     {
@@ -187,6 +263,48 @@ public sealed partial class SettingsViewModel : ObservableObject
         OnPropertyChanged(nameof(IsPerformanceCategory));
         OnPropertyChanged(nameof(IsSystemCategory));
         RefreshSystemDiagnostics();
+    }
+
+    partial void OnSelectedEyeCareChanged(EyeCareMode value)
+    {
+        OnPropertyChanged(nameof(IsEyeCareOff));
+        OnPropertyChanged(nameof(IsEyeCareWarmSoft));
+        OnPropertyChanged(nameof(IsEyeCareDeepNight));
+        OnPropertyChanged(nameof(CurrentEyeCareLabel));
+    }
+
+    partial void OnSelectedAspectRatioChanged(string value)
+    {
+        OnPropertyChanged(nameof(IsAspectAuto));
+        OnPropertyChanged(nameof(IsAspect169));
+        OnPropertyChanged(nameof(IsAspect219));
+        OnPropertyChanged(nameof(CurrentAspectDisplay));
+    }
+
+    partial void OnSelectedPlaybackSpeedChanged(double value)
+    {
+        OnPropertyChanged(nameof(IsSpeed075));
+        OnPropertyChanged(nameof(IsSpeed100));
+        OnPropertyChanged(nameof(IsSpeed125));
+        OnPropertyChanged(nameof(IsSpeed150));
+        OnPropertyChanged(nameof(CurrentSpeedDisplay));
+    }
+
+    partial void OnMaxCachedWebAppsChanged(int value)
+    {
+        OnPropertyChanged(nameof(IsMaxApps2));
+        OnPropertyChanged(nameof(IsMaxApps4));
+        OnPropertyChanged(nameof(IsMaxApps6));
+        OnPropertyChanged(nameof(IsMaxApps8));
+    }
+
+    partial void OnSelectedSleepMinutesChanged(int value)
+    {
+        OnPropertyChanged(nameof(IsSleep0));
+        OnPropertyChanged(nameof(IsSleep15));
+        OnPropertyChanged(nameof(IsSleep30));
+        OnPropertyChanged(nameof(IsSleep60));
+        OnPropertyChanged(nameof(IsSleep90));
     }
 
     partial void OnMasterVolumePercentChanged(int value)
@@ -258,7 +376,12 @@ public sealed partial class SettingsViewModel : ObservableObject
     public void SyncEyeCareFromExternal(EyeCareMode mode)
     {
         SelectedEyeCare = mode;
-        OnPropertyChanged(nameof(CurrentEyeCareLabel));
+    }
+
+    public void SyncSleepTimerMinutesFromExternal(int minutes, string status)
+    {
+        SelectedSleepMinutes = minutes;
+        SleepTimerStatusText = status;
     }
 
     public void UpdateSleepStatusDisplay(string status)
@@ -284,7 +407,6 @@ public sealed partial class SettingsViewModel : ObservableObject
         SelectedAspectRatio = ratio;
         _configService.Current.DefaultAspectRatio = ratio;
         _configService.Save();
-        OnPropertyChanged(nameof(CurrentAspectDisplay));
         ShowConfirmation($"Đã đặt tỷ lệ khung hình mặc định: {CurrentAspectDisplay}");
     }
 
@@ -296,7 +418,6 @@ public sealed partial class SettingsViewModel : ObservableObject
             SelectedPlaybackSpeed = speed;
             _configService.Current.DefaultPlaybackSpeed = speed;
             _configService.Save();
-            OnPropertyChanged(nameof(CurrentSpeedDisplay));
             ShowConfirmation($"Đã đặt tốc độ phát mặc định: {CurrentSpeedDisplay}");
         }
     }
@@ -309,7 +430,6 @@ public sealed partial class SettingsViewModel : ObservableObject
             SelectedEyeCare = mode;
             _configService.Current.EyeCare = mode;
             _configService.Save();
-            OnPropertyChanged(nameof(CurrentEyeCareLabel));
             _onEyeCareChanged(mode);
             ShowConfirmation($"Chế độ bảo vệ mắt ban đêm: {CurrentEyeCareLabel}");
         }
@@ -356,6 +476,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     {
         if (int.TryParse(minutesText, out var minutes))
         {
+            SelectedSleepMinutes = minutes;
             _onSleepTimerSelected(minutes);
             ShowConfirmation(minutes <= 0
                 ? "Đã hủy hẹn giờ tự tắt ZenBox."

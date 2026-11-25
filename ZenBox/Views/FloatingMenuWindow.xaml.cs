@@ -1,5 +1,7 @@
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using ZenBox.Models;
@@ -10,26 +12,35 @@ namespace ZenBox.Views;
 
 public partial class FloatingMenuWindow : Window
 {
-    private const double CompactWindowSize = 96.0;
-    private const double DragThresholdPixels = 8.0;
+    private const int GWL_EXSTYLE = -20;
+    private const int WS_EX_TRANSPARENT = 0x00000020;
+    private const int WS_EX_NOACTIVATE = 0x08000000;
 
     private readonly MainViewModel _mainVm;
-    private bool _isMouseDownOnBall;
-    private bool _isDraggingBall;
-    private Point _mouseDownDipScreenPos;
-    private double _ballStartLeft;
-    private double _ballStartTop;
-    private double _savedBallLeft;
-    private double _savedBallTop;
-    private bool _isMenuExpanded;
+    private readonly Action<bool> _onPopupStateChanged;
+    private IntPtr _hwnd;
+    private bool _isOpen;
 
-    public FloatingMenuWindow(MainViewModel mainVm)
+    [DllImport("user32.dll")]
+    private static extern int GetWindowLong(IntPtr hwnd, int index);
+
+    [DllImport("user32.dll")]
+    private static extern int SetWindowLong(IntPtr hwnd, int index, int newStyle);
+
+    public FloatingMenuWindow(MainViewModel mainVm, Action<bool> onPopupStateChanged)
     {
         InitializeComponent();
         _mainVm = mainVm;
+        _onPopupStateChanged = onPopupStateChanged;
         DataContext = mainVm;
 
-        // Nạp bộ Logo thương hiệu thuần khiết không nền vào Dock
+        Left = 0;
+        Top = 0;
+        Width = SystemParameters.PrimaryScreenWidth;
+        Height = SystemParameters.PrimaryScreenHeight;
+        Opacity = 0.0;
+        IsHitTestVisible = false;
+
         DockYouTubeImg.Source = BrandLogoFactory.GetLogo(AppSection.YouTube);
         DockNetflixImg.Source = BrandLogoFactory.GetLogo(AppSection.Netflix);
         DockSpotifyImg.Source = BrandLogoFactory.GetLogo(AppSection.Spotify);
@@ -39,156 +50,80 @@ public partial class FloatingMenuWindow : Window
         DockMoviesImg.Source = BrandLogoFactory.GetLogo(AppSection.OfflineMovies);
         DockMusicImg.Source = BrandLogoFactory.GetLogo(AppSection.OfflineMusic);
 
-        Loaded += OnWindowLoaded;
+        SourceInitialized += OnWindowSourceInitialized;
     }
 
-    private void OnWindowLoaded(object sender, RoutedEventArgs e)
+    private void OnWindowSourceInitialized(object? sender, EventArgs e)
     {
-        var workArea = SystemParameters.WorkArea;
-        var cfg = _mainVm.ConfigService.Current;
-
-        _savedBallLeft = cfg.FloatingButtonLeft ?? (workArea.Right - CompactWindowSize - 20);
-        _savedBallTop = cfg.FloatingButtonTop ?? (workArea.Top + (workArea.Height - CompactWindowSize) / 2.0);
-        ClampSavedPositionToScreen();
-
-        Left = _savedBallLeft;
-        Top = _savedBallTop;
+        _hwnd = new WindowInteropHelper(this).Handle;
+        SetClickThrough(enableClickThrough: true);
     }
 
-    private Point GetCursorDipScreenPosition(MouseEventArgs e)
+    private void SetClickThrough(bool enableClickThrough)
     {
-        var physicalPoint = PointToScreen(e.GetPosition(this));
-        var dpi = VisualTreeHelper.GetDpi(this);
-        return new Point(physicalPoint.X / dpi.DpiScaleX, physicalPoint.Y / dpi.DpiScaleY);
-    }
-
-    private void OnBallMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-    {
-        _isMouseDownOnBall = true;
-        _isDraggingBall = false;
-        _mouseDownDipScreenPos = GetCursorDipScreenPosition(e);
-        _ballStartLeft = Left;
-        _ballStartTop = Top;
-        AssistiveBall.CaptureMouse();
-        e.Handled = true;
-    }
-
-    private void OnBallMouseMove(object sender, MouseEventArgs e)
-    {
-        if (!_isMouseDownOnBall || e.LeftButton != MouseButtonState.Pressed)
+        if (_hwnd == IntPtr.Zero)
         {
             return;
         }
 
-        var currentDipPos = GetCursorDipScreenPosition(e);
-        var dx = currentDipPos.X - _mouseDownDipScreenPos.X;
-        var dy = currentDipPos.Y - _mouseDownDipScreenPos.Y;
-
-        if (!_isDraggingBall && Math.Sqrt(dx * dx + dy * dy) > DragThresholdPixels)
+        int style = GetWindowLong(_hwnd, GWL_EXSTYLE);
+        if (enableClickThrough)
         {
-            _isDraggingBall = true;
-        }
-
-        if (_isDraggingBall)
-        {
-            var screenW = SystemParameters.PrimaryScreenWidth;
-            var screenH = SystemParameters.PrimaryScreenHeight;
-
-            Left = Math.Clamp(_ballStartLeft + dx, 0, Math.Max(0, screenW - CompactWindowSize));
-            Top = Math.Clamp(_ballStartTop + dy, 0, Math.Max(0, screenH - CompactWindowSize));
-        }
-    }
-
-    private void OnBallMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
-    {
-        if (!_isMouseDownOnBall)
-        {
-            return;
-        }
-
-        _isMouseDownOnBall = false;
-        AssistiveBall.ReleaseMouseCapture();
-        e.Handled = true;
-
-        if (_isDraggingBall)
-        {
-            _savedBallLeft = Left;
-            _savedBallTop = Top;
-            _mainVm.ConfigService.Current.FloatingButtonLeft = _savedBallLeft;
-            _mainVm.ConfigService.Current.FloatingButtonTop = _savedBallTop;
-            _mainVm.ConfigService.Save();
-            _isDraggingBall = false;
+            SetWindowLong(_hwnd, GWL_EXSTYLE, style | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE);
         }
         else
         {
-            ExpandQuickMenu();
+            SetWindowLong(_hwnd, GWL_EXSTYLE, style & ~(WS_EX_TRANSPARENT | WS_EX_NOACTIVATE));
         }
     }
 
-    private void ExpandQuickMenu()
+    public void OpenSmoothly()
     {
-        if (_isMenuExpanded)
+        if (_isOpen)
         {
             return;
         }
 
-        _savedBallLeft = Left;
-        _savedBallTop = Top;
-        _isMenuExpanded = true;
+        _isOpen = true;
         _mainVm.SyncLiveSystemVolume();
+        _onPopupStateChanged(true);
 
-        AssistiveBallContainer.Visibility = Visibility.Collapsed;
-        ExpandedMenuOverlay.Opacity = 0;
-        ExpandedMenuOverlay.Visibility = Visibility.Visible;
+        // Không bao giờ đổi kích thước cửa sổ -> Triệt tiêu 100% hiện tượng nháy khung hình DWM
+        IsHitTestVisible = true;
+        SetClickThrough(enableClickThrough: false);
 
-        Left = 0;
-        Top = 0;
-        Width = SystemParameters.PrimaryScreenWidth;
-        Height = SystemParameters.PrimaryScreenHeight;
-
-        PlaySheetEntranceAnimation();
-    }
-
-    private void PlaySheetEntranceAnimation()
-    {
         var ease = new QuinticEase { EasingMode = EasingMode.EaseOut };
-        var duration = new Duration(TimeSpan.FromMilliseconds(280));
+        var sheetDuration = new Duration(TimeSpan.FromMilliseconds(240));
 
-        ExpandedMenuOverlay.BeginAnimation(OpacityProperty, new DoubleAnimation(0.0, 1.0, new Duration(TimeSpan.FromMilliseconds(200))));
-        SheetScale.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(0.92, 1.0, duration) { EasingFunction = ease });
-        SheetScale.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(0.92, 1.0, duration) { EasingFunction = ease });
-        SheetTranslate.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(20.0, 0.0, duration) { EasingFunction = ease });
+        BeginAnimation(OpacityProperty, new DoubleAnimation(1.0, new Duration(TimeSpan.FromMilliseconds(160))) { EasingFunction = ease });
+        SheetScale.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(0.94, 1.0, sheetDuration) { EasingFunction = ease });
+        SheetScale.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(0.94, 1.0, sheetDuration) { EasingFunction = ease });
+        SheetTranslate.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(14.0, 0.0, sheetDuration) { EasingFunction = ease });
     }
 
-    private void CollapseQuickMenu()
+    public void CloseSmoothly()
     {
-        if (!_isMenuExpanded)
+        if (!_isOpen)
         {
             return;
         }
 
-        _isMenuExpanded = false;
-        ExpandedMenuOverlay.Visibility = Visibility.Collapsed;
-        AssistiveBallContainer.Visibility = Visibility.Visible;
+        _isOpen = false;
+        IsHitTestVisible = false;
+        SetClickThrough(enableClickThrough: true);
+        _onPopupStateChanged(false);
 
-        Width = CompactWindowSize;
-        Height = CompactWindowSize;
-        ClampSavedPositionToScreen();
-        Left = _savedBallLeft;
-        Top = _savedBallTop;
-    }
+        var ease = new QuarticEase { EasingMode = EasingMode.EaseOut };
+        var fadeDuration = new Duration(TimeSpan.FromMilliseconds(150));
 
-    private void ClampSavedPositionToScreen()
-    {
-        var screenW = SystemParameters.PrimaryScreenWidth;
-        var screenH = SystemParameters.PrimaryScreenHeight;
-        _savedBallLeft = Math.Clamp(_savedBallLeft, 0, Math.Max(0, screenW - CompactWindowSize));
-        _savedBallTop = Math.Clamp(_savedBallTop, 0, Math.Max(0, screenH - CompactWindowSize));
+        BeginAnimation(OpacityProperty, new DoubleAnimation(0.0, fadeDuration) { EasingFunction = ease });
+        SheetScale.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(0.96, fadeDuration) { EasingFunction = ease });
+        SheetScale.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(0.96, fadeDuration) { EasingFunction = ease });
     }
 
     private void OnBackdropMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        CollapseQuickMenu();
+        CloseSmoothly();
     }
 
     private void OnMenuCardMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -198,94 +133,84 @@ public partial class FloatingMenuWindow : Window
 
     private void OnCloseMenuClick(object sender, RoutedEventArgs e)
     {
-        CollapseQuickMenu();
+        CloseSmoothly();
     }
 
     private void OnAppBackClick(object sender, RoutedEventArgs e)
     {
-        CollapseQuickMenu();
+        CloseSmoothly();
         _mainVm.AppGoBack();
     }
 
     private void OnAppReloadClick(object sender, RoutedEventArgs e)
     {
-        CollapseQuickMenu();
+        CloseSmoothly();
         _mainVm.AppReload();
     }
 
     private void OnGoHomeClick(object sender, RoutedEventArgs e)
     {
-        CollapseQuickMenu();
+        CloseSmoothly();
         _mainVm.NavigateHome();
     }
 
     private void OnOpenSettingsClick(object sender, RoutedEventArgs e)
     {
-        CollapseQuickMenu();
+        CloseSmoothly();
         _mainVm.OpenSettings();
     }
 
     private void OnOpenYouTubeClick(object sender, RoutedEventArgs e)
     {
-        CollapseQuickMenu();
+        CloseSmoothly();
         _mainVm.OpenYouTube();
     }
 
     private void OnOpenNetflixClick(object sender, RoutedEventArgs e)
     {
-        CollapseQuickMenu();
+        CloseSmoothly();
         _mainVm.OpenNetflix();
     }
 
     private void OnOpenSpotifyClick(object sender, RoutedEventArgs e)
     {
-        CollapseQuickMenu();
+        CloseSmoothly();
         _mainVm.OpenSpotify();
     }
 
     private void OnOpenFacebookClick(object sender, RoutedEventArgs e)
     {
-        CollapseQuickMenu();
+        CloseSmoothly();
         _mainVm.OpenFacebook();
     }
 
     private void OnOpenTikTokClick(object sender, RoutedEventArgs e)
     {
-        CollapseQuickMenu();
+        CloseSmoothly();
         _mainVm.OpenTikTok();
     }
 
     private void OnOpenWebBrowserClick(object sender, RoutedEventArgs e)
     {
-        CollapseQuickMenu();
+        CloseSmoothly();
         _mainVm.OpenWebBrowser();
     }
 
     private void OnOpenMoviesClick(object sender, RoutedEventArgs e)
     {
-        CollapseQuickMenu();
+        CloseSmoothly();
         _mainVm.OpenOfflineMovies();
     }
 
     private void OnOpenMusicClick(object sender, RoutedEventArgs e)
     {
-        CollapseQuickMenu();
+        CloseSmoothly();
         _mainVm.OpenOfflineMusic();
-    }
-
-    private void OnVolumeDownClick(object sender, RoutedEventArgs e)
-    {
-        _mainVm.VolumeDown();
-    }
-
-    private void OnVolumeUpClick(object sender, RoutedEventArgs e)
-    {
-        _mainVm.VolumeUp();
     }
 
     private void OnExitAppClick(object sender, RoutedEventArgs e)
     {
-        CollapseQuickMenu();
+        CloseSmoothly();
         _mainVm.ExitApplication();
     }
 }

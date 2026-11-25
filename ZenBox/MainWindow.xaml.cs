@@ -10,6 +10,7 @@ namespace ZenBox;
 public partial class MainWindow : Window
 {
     private readonly MainViewModel _viewModel;
+    private FloatingOrbWindow? _floatingOrbWindow;
     private FloatingMenuWindow? _floatingMenuWindow;
     private bool _backgroundStarted;
 
@@ -26,11 +27,28 @@ public partial class MainWindow : Window
 
     private void OnMainWindowLoaded(object sender, RoutedEventArgs e)
     {
-        _floatingMenuWindow = new FloatingMenuWindow(_viewModel)
+        // Khởi tạo sẵn bề mặt Popup toàn màn hình ở chế độ xuyên chuột (Opacity = 0, WS_EX_TRANSPARENT) để mở 0ms không bao giờ nháy
+        _floatingMenuWindow = new FloatingMenuWindow(
+            _viewModel,
+            isPopupOpen =>
+            {
+                if (_floatingOrbWindow is not null)
+                {
+                    _floatingOrbWindow.Opacity = isPopupOpen ? 0.0 : 1.0;
+                    _floatingOrbWindow.IsHitTestVisible = !isPopupOpen;
+                }
+            })
         {
             Owner = this
         };
         _floatingMenuWindow.Show();
+
+        // Cụm viên ngọc nổi độc lập (gồm nút Trả Về khi ở trong App + nút mở Trung tâm điều khiển)
+        _floatingOrbWindow = new FloatingOrbWindow(_viewModel, () => _floatingMenuWindow.OpenSmoothly())
+        {
+            Owner = this
+        };
+        _floatingOrbWindow.Show();
     }
 
     private void OnMainWindowContentRendered(object? sender, EventArgs e)
@@ -46,7 +64,6 @@ public partial class MainWindow : Window
 
     private void OnWindowPreviewKeyDown(object sender, KeyEventArgs e)
     {
-        // Không can thiệp khi người dùng đang gõ chữ trong ô tìm kiếm
         if (Keyboard.FocusedElement is TextBox)
         {
             return;
@@ -89,10 +106,16 @@ public partial class MainWindow : Window
                     break;
             }
         }
+        else if (e.Key == Key.Escape && _viewModel.IsNotHome)
+        {
+            _viewModel.AppGoBack();
+            e.Handled = true;
+        }
     }
 
     private void OnMainWindowClosed(object? sender, EventArgs e)
     {
+        _floatingOrbWindow?.Close();
         _floatingMenuWindow?.Close();
         _viewModel.Dispose();
     }

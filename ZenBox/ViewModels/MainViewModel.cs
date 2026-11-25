@@ -80,6 +80,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private bool _isSystemMuted;
 
     public bool IsHomeVisible => ActiveSection == AppSection.Home;
+    public bool IsNotHome => ActiveSection != AppSection.Home;
 
     public bool IsOnlineAppActive => ActiveSection is
         AppSection.YouTube or
@@ -241,6 +242,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private void NotifyVisibilityProperties()
     {
         OnPropertyChanged(nameof(IsHomeVisible));
+        OnPropertyChanged(nameof(IsNotHome));
         OnPropertyChanged(nameof(IsOnlineAppActive));
         OnPropertyChanged(nameof(IsSystemShellChromeVisible));
         OnPropertyChanged(nameof(IsWebSectionVisible));
@@ -314,12 +316,13 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             _sleepTargetUtc = null;
             IsSleepTimerActive = false;
             SleepTimerBadgeText = "Hẹn giờ: Tắt";
-            SettingsVm.UpdateSleepStatusDisplay("Đang tắt");
+            SettingsVm.SyncSleepTimerMinutesFromExternal(0, "Đang tắt");
         }
         else
         {
             _sleepTargetUtc = DateTime.UtcNow.AddMinutes(minutes);
             IsSleepTimerActive = true;
+            SettingsVm.SyncSleepTimerMinutesFromExternal(minutes, $"Đang hẹn {minutes} phút");
             UpdateClockAndTimers();
         }
     }
@@ -357,6 +360,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
         var nextIdx = (Array.IndexOf(steps, currentMinutes) + 1) % steps.Length;
         SetSleepTimerMinutes(steps[nextIdx]);
+    }
+
+    public void SetSleepTimerFromSettings(int minutes)
+    {
+        SetSleepTimerMinutes(minutes);
     }
 
     public static string FormatVietnameseDate(DateTime dateTime)
@@ -482,11 +490,30 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     [RelayCommand]
     public void AppGoBack()
     {
+        if (IsErrorVisible)
+        {
+            IsErrorVisible = false;
+            ActiveError = null;
+            return;
+        }
+
+        if (ActiveSection == AppSection.MediaPlayer)
+        {
+            MediaPlayerVm.BackToLibraryCommand.Execute(null);
+            return;
+        }
+
         if (IsOnlineAppActive)
         {
-            _webBrowserService.NavigateActiveTabBack();
+            // Nếu trang trong ứng dụng có lịch sử trước đó thì lùi 1 bước; nếu đang ở trang gốc của ứng dụng thì trở về ngay Trang Chủ!
+            if (!_webBrowserService.TryNavigateActiveTabBack())
+            {
+                NavigateHome();
+            }
+            return;
         }
-        else if (ActiveSection != AppSection.Home)
+
+        if (ActiveSection != AppSection.Home)
         {
             NavigateHome();
         }
