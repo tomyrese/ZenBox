@@ -1,0 +1,167 @@
+<UserControl x:Class="ZenBox.Views.MediaPlayerView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vlc="clr-namespace:LibVLCSharp.WPF;assembly=LibVLCSharp.WPF"
+             FontFamily="{StaticResource PrimaryFontFamily}">
+
+    <Grid Background="#000000">
+        <!-- LibVLCSharp VideoView tự tạo cửa sổ phủ trong suốt cho phần tử bên trong để chống lỗi đè HWND -->
+        <vlc:VideoView MediaPlayer="{Binding VlcPlayer}"
+                       HorizontalAlignment="Stretch"
+                       VerticalAlignment="Stretch"
+                       Background="#000000">
+            <Grid Background="#01000000"
+                  MouseMove="OnPlayerSurfaceMouseMove"
+                  MouseDown="OnPlayerSurfaceMouseDown">
+
+                <!-- Giao diện trung tâm khi phát Nhạc -->
+                <Border MaxWidth="560"
+                        Padding="36"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Style="{StaticResource GlassPanelBorderStyle}"
+                        Background="#D90F172A"
+                        Visibility="{Binding IsAudioTrack, Converter={StaticResource BoolToVis}}">
+                    <StackPanel HorizontalAlignment="Center">
+                        <Border Width="280"
+                                Height="280"
+                                CornerRadius="24"
+                                ClipToBounds="True"
+                                BorderBrush="{StaticResource GlassBorderBrush}"
+                                BorderThickness="1"
+                                Margin="0,0,0,24">
+                            <Image Source="{Binding CurrentMedia.CoverImage}" Stretch="UniformToFill" />
+                        </Border>
+                        <TextBlock Text="{Binding MediaTitle}"
+                                   FontSize="28"
+                                   FontWeight="Bold"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   TextAlignment="Center"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,8" />
+                        <TextBlock Text="Đang phát nhạc từ thư viện máy tính"
+                                   FontSize="18"
+                                   Foreground="{StaticResource AccentCyanBrush}"
+                                   TextAlignment="Center" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Lớp điều khiển tự ẩn sau 3 giây không di chuyển chuột -->
+                <Grid Visibility="{Binding IsControlsVisible, Converter={StaticResource BoolToVis}}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <!-- Thanh tiêu đề trên cùng -->
+                    <Border Grid.Row="0"
+                            Background="#CC0B0F19"
+                            Padding="36,20">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Button Grid.Column="0"
+                                    Content="← Quay lại thư viện"
+                                    Style="{StaticResource GlassActionButtonStyle}"
+                                    Command="{Binding BackToLibraryCommand}"
+                                    MinHeight="58"
+                                    Margin="0,0,24,0" />
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding MediaTitle}"
+                                       FontSize="28"
+                                       FontWeight="Bold"
+                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                       VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis" />
+                        </Grid>
+                    </Border>
+
+                    <!-- Thanh điều khiển cỡ lớn phía dưới -->
+                    <Border Grid.Row="2"
+                            Margin="36,0,36,28"
+                            Padding="32,24"
+                            Background="#E00F172A"
+                            BorderBrush="{StaticResource GlassBorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="24">
+                        <StackPanel>
+                            <!-- Thanh tiến trình lớn -->
+                            <Grid Margin="0,0,0,20" VerticalAlignment="Center">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Grid.Column="0"
+                                           Text="{Binding CurrentTimeText}"
+                                           FontSize="20"
+                                           FontWeight="SemiBold"
+                                           Foreground="{StaticResource AccentCyanBrush}"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,20,0" />
+
+                                <Slider x:Name="TimelineSlider"
+                                        Grid.Column="1"
+                                        Minimum="0"
+                                        Maximum="1000"
+                                        Value="{Binding ProgressValue, Mode=TwoWay}"
+                                        Height="36"
+                                        VerticalAlignment="Center"
+                                        IsMoveToPointEnabled="True"
+                                        Cursor="Hand"
+                                        Thumb.DragStarted="OnSliderDragStarted"
+                                        Thumb.DragCompleted="OnSliderDragCompleted"
+                                        PreviewMouseLeftButtonUp="OnSliderMouseLeftButtonUp" />
+
+                                <TextBlock Grid.Column="2"
+                                           Text="{Binding TotalDurationText}"
+                                           FontSize="20"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           VerticalAlignment="Center"
+                                           Margin="20,0,0,0" />
+                            </Grid>
+
+                            <!-- Cụm nút Phát / Tạm dừng / Tua 15 giây -->
+                            <WrapPanel HorizontalAlignment="Center">
+                                <Button Content="⏪ Tua lùi 15 giây"
+                                        Style="{StaticResource GlassActionButtonStyle}"
+                                        Command="{Binding Rewind15SecondsCommand}"
+                                        MinHeight="64"
+                                        MinWidth="220"
+                                        FontSize="22"
+                                        Margin="0,0,24,0" />
+
+                                <Button Content="{Binding PlayPauseButtonText}"
+                                        Style="{StaticResource PrimaryCyanButtonStyle}"
+                                        Command="{Binding TogglePlayPauseCommand}"
+                                        MinHeight="64"
+                                        MinWidth="240"
+                                        FontSize="24"
+                                        Margin="0,0,24,0" />
+
+                                <Button Content="Tua tới 15 giây ⏩"
+                                        Style="{StaticResource GlassActionButtonStyle}"
+                                        Command="{Binding Forward15SecondsCommand}"
+                                        MinHeight="64"
+                                        MinWidth="220"
+                                        FontSize="22"
+                                        Margin="0,0,24,0" />
+
+                                <Button Content="Quay lại thư viện"
+                                        Style="{StaticResource GlassActionButtonStyle}"
+                                        Command="{Binding BackToLibraryCommand}"
+                                        MinHeight="64"
+                                        MinWidth="220"
+                                        FontSize="22" />
+                            </WrapPanel>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Grid>
+        </vlc:VideoView>
+    </Grid>
+</UserControl>

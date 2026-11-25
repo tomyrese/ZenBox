@@ -1,0 +1,119 @@
+<UserControl x:Class="ZenBox.Views.HomeView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             FontFamily="{StaticResource PrimaryFontFamily}">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled"
+                  Padding="48,28,48,24">
+        <StackPanel>
+            <!-- Khu vực 1: Giải trí trực tuyến -->
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,22">
+                <Border Width="8" Height="36" CornerRadius="4" Background="{StaticResource AccentCyanBrush}" Margin="0,0,16,0" />
+                <TextBlock Text="Giải trí trực tuyến"
+                           FontSize="34"
+                           FontWeight="Bold"
+                           Foreground="{StaticResource TextPrimaryBrush}" />
+            </StackPanel>
+
+            <ItemsControl ItemsSource="{Binding OnlineTiles}" Margin="0,0,0,24">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Button Style="{StaticResource GlassTileButtonStyle}"
+                                Command="{Binding DataContext.SelectTileCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                CommandParameter="{Binding}"
+                                Width="330"
+                                Height="215">
+                            <StackPanel VerticalAlignment="Center">
+                                <Border Width="72"
+                                        Height="72"
+                                        CornerRadius="22"
+                                        Background="#22FFFFFF"
+                                        BorderBrush="{Binding AccentBrush}"
+                                        BorderThickness="2"
+                                        HorizontalAlignment="Left"
+                                        Margin="0,0,0,18">
+                                    <TextBlock Text="{Binding IconSymbol}"
+                                               FontSize="34"
+                                               FontWeight="Bold"
+                                               Foreground="{Binding AccentBrush}"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center" />
+                                </Border>
+                                <TextBlock Text="{Binding Title}"
+                                           FontSize="26"
+                                           FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}"
+                                           Margin="0,0,0,6" />
+                                <TextBlock Text="{Binding Subtitle}"
+                                           FontSize="18"
+                                           FontWeight="Regular"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Button>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!-- Khu vực 2: Thư viện trong máy & Hệ thống -->
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,12,0,22">
+                <Border Width="8" Height="36" CornerRadius="4" Background="{StaticResource SuccessGreenBrush}" Margin="0,0,16,0" />
+                <TextBlock Text="Thư viện của tôi &amp; Hệ thống"
+                           FontSize="34"
+                           FontWeight="Bold"
+                           Foreground="{StaticResource TextPrimaryBrush}" />
+            </StackPanel>
+
+            <ItemsControl ItemsSource="{Binding OfflineAndSystemTiles}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Button Style="{StaticResource GlassTileButtonStyle}"
+                                Command="{Binding DataContext.SelectTileCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                CommandParameter="{Binding}"
+                                Width="330"
+                                Height="215">
+                            <StackPanel VerticalAlignment="Center">
+                                <Border Width="72"
+                                        Height="72"
+                                        CornerRadius="22"
+                                        Background="#22FFFFFF"
+                                        BorderBrush="{Binding AccentBrush}"
+                                        BorderThickness="2"
+                                        HorizontalAlignment="Left"
+                                        Margin="0,0,0,18">
+                                    <TextBlock Text="{Binding IconSymbol}"
+                                               FontSize="34"
+                                               FontWeight="Bold"
+                                               Foreground="{Binding AccentBrush}"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center" />
+                                </Border>
+                                <TextBlock Text="{Binding Title}"
+                                           FontSize="26"
+                                           FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}"
+                                           Margin="0,0,0,6" />
+                                <TextBlock Text="{Binding Subtitle}"
+                                           FontSize="18"
+                                           FontWeight="Regular"
+                                           Foreground="{StaticResource TextSecondaryBrush}"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Button>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

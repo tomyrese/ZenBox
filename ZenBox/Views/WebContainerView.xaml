@@ -1,0 +1,93 @@
+<UserControl x:Class="ZenBox.Views.WebContainerView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             FontFamily="{StaticResource PrimaryFontFamily}">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Thanh công cụ điều hướng gọn rõ phía trên trang web -->
+        <Border Grid.Row="0"
+                Background="#CC0F172A"
+                BorderBrush="{StaticResource GlassBorderBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="28,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="← Trang trước"
+                            Style="{StaticResource GlassActionButtonStyle}"
+                            Command="{Binding GoBackCommand}"
+                            MinHeight="56"
+                            MinWidth="170"
+                            Margin="0,0,16,0" />
+                    <Button Content="↻ Tải lại trang"
+                            Style="{StaticResource GlassActionButtonStyle}"
+                            Command="{Binding ReloadPageCommand}"
+                            MinHeight="56"
+                            MinWidth="175"
+                            Margin="0,0,20,0" />
+                </StackPanel>
+
+                <!-- Thanh tìm kiếm hiển thị khi dùng Trình duyệt Web -->
+                <Grid Grid.Column="1"
+                      VerticalAlignment="Center"
+                      Margin="0,0,20,0"
+                      Visibility="{Binding IsAddressBarVisible, Converter={StaticResource BoolToVis}}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Border Grid.Column="0"
+                            Background="{StaticResource GlassSurfaceBrush}"
+                            BorderBrush="{StaticResource GlassBorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="16"
+                            Padding="18,10"
+                            Margin="0,0,14,0">
+                        <TextBox Text="{Binding AddressText, UpdateSourceTrigger=PropertyChanged}"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 Foreground="{StaticResource TextPrimaryBrush}"
+                                 CaretBrush="{StaticResource AccentCyanBrush}"
+                                 FontSize="20"
+                                 VerticalContentAlignment="Center"
+                                 KeyDown="OnAddressBoxKeyDown" />
+                    </Border>
+                    <Button Grid.Column="1"
+                            Content="Đi tới"
+                            Style="{StaticResource PrimaryCyanButtonStyle}"
+                            Command="{Binding NavigateToAddressCommand}"
+                            MinHeight="56"
+                            MinWidth="130" />
+                </Grid>
+
+                <!-- Tiêu đề kênh và báo hiệu đang tải -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="Đang mở trang..."
+                               FontSize="18"
+                               Foreground="{StaticResource AccentCyanBrush}"
+                               VerticalAlignment="Center"
+                               Margin="0,0,18,0"
+                               Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}" />
+                    <Button Content="⌂ Về Trang Chủ"
+                            Style="{StaticResource PrimaryCyanButtonStyle}"
+                            Command="{Binding GoHomeCommand}"
+                            MinHeight="56"
+                            MinWidth="190" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Vùng chứa Pool các cửa sổ WebView2 giữ nguyên trạng thái -->
+        <Grid x:Name="BrowserHostGrid" Grid.Row="1" Background="#0B0F19" />
+    </Grid>
+</UserControl>

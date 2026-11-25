@@ -1,0 +1,142 @@
+<UserControl x:Class="ZenBox.Views.MediaLibraryView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             FontFamily="{StaticResource PrimaryFontFamily}">
+
+    <Grid Margin="48,24,48,20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Thanh tiêu đề kho Phim / Nhạc -->
+        <Grid Grid.Row="0" Margin="0,0,0,28">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                <TextBlock Text="{Binding HeaderTitle}"
+                           FontSize="38"
+                           FontWeight="Bold"
+                           Foreground="{StaticResource TextPrimaryBrush}"
+                           Margin="0,0,0,6" />
+                <TextBlock Text="{Binding CurrentFolderDisplay}"
+                           FontSize="18"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Content="↻ Quét lại danh sách"
+                        Style="{StaticResource GlassActionButtonStyle}"
+                        Command="{Binding RefreshLibraryCommand}"
+                        MinHeight="60"
+                        Margin="0,0,18,0" />
+                <Button Content="⚙ Chọn thư mục khác"
+                        Style="{StaticResource GlassActionButtonStyle}"
+                        Command="{Binding OpenConfigCommand}"
+                        MinHeight="60"
+                        Margin="0,0,18,0" />
+                <Button Content="⌂ Về Trang Chủ"
+                        Style="{StaticResource PrimaryCyanButtonStyle}"
+                        Command="{Binding GoHomeCommand}"
+                        MinHeight="60" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Trạng thái đang quét -->
+        <Border Grid.Row="1"
+                Style="{StaticResource GlassPanelBorderStyle}"
+                Padding="40"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Visibility="{Binding IsScanning, Converter={StaticResource BoolToVis}}">
+            <TextBlock Text="Đang tìm phim và bài hát trong máy, vui lòng đợi giây lát..."
+                       FontSize="24"
+                       FontWeight="SemiBold"
+                       Foreground="{StaticResource AccentCyanBrush}" />
+        </Border>
+
+        <!-- Trạng thái thư mục trống -->
+        <Border Grid.Row="1"
+                Style="{StaticResource GlassPanelBorderStyle}"
+                MaxWidth="780"
+                Padding="44"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVis}}">
+            <StackPanel HorizontalAlignment="Center">
+                <TextBlock Text="{Binding EmptyStateMessage}"
+                           FontSize="24"
+                           Foreground="{StaticResource TextPrimaryBrush}"
+                           TextAlignment="Center"
+                           TextWrapping="Wrap"
+                           LineHeight="36"
+                           Margin="0,0,0,28" />
+                <Button Content="Mở Cài đặt để chọn thư mục"
+                        Style="{StaticResource PrimaryCyanButtonStyle}"
+                        Command="{Binding OpenConfigCommand}"
+                        HorizontalAlignment="Center"
+                        MinHeight="62"
+                        MinWidth="320"
+                        FontSize="22" />
+            </StackPanel>
+        </Border>
+
+        <!-- Lưới Poster Phim & Nhạc cỡ lớn -->
+        <ScrollViewer Grid.Row="1"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled">
+            <ItemsControl ItemsSource="{Binding MediaItems}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Button Style="{StaticResource GlassTileButtonStyle}"
+                                Command="{Binding DataContext.PlayItemCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                CommandParameter="{Binding}"
+                                Width="340"
+                                Height="300"
+                                Padding="16">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="185" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+
+                                <Border Grid.Row="0"
+                                        CornerRadius="16"
+                                        ClipToBounds="True"
+                                        Background="#1AFFFFFF"
+                                        Margin="0,0,0,14">
+                                    <Image Source="{Binding CoverImage}"
+                                           Stretch="UniformToFill"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center" />
+                                </Border>
+
+                                <StackPanel Grid.Row="1" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Title}"
+                                               FontSize="22"
+                                               FontWeight="SemiBold"
+                                               Foreground="{StaticResource TextPrimaryBrush}"
+                                               TextTrimming="CharacterEllipsis"
+                                               Margin="0,0,0,4" />
+                                    <TextBlock Text="{Binding SubInfoText}"
+                                               FontSize="18"
+                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                               TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </Grid>
+</UserControl>
