@@ -51,9 +51,13 @@ export default function App() {
     const unsubState = zenSocket.subscribeState((nextState) => {
       setRemoteState(nextState);
     });
+    const unsubUnconnected = zenSocket.subscribeUnconnectedAttempt(() => {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      setConnectModalVisible(true);
+    });
 
-    void zenSocket.initialize().then((savedHost) => {
-      if (!savedHost) {
+    void zenSocket.initialize().then(({ connected }) => {
+      if (!connected) {
         setConnectModalVisible(true);
       }
     });
@@ -61,6 +65,7 @@ export default function App() {
     return () => {
       unsubStatus();
       unsubState();
+      unsubUnconnected();
     };
   }, []);
 
@@ -70,12 +75,15 @@ export default function App() {
   };
 
   const isConnected = status === 'connected';
+  const clientCount = remoteState.connectedClients ?? 1;
   const statusLabel =
     status === 'connected'
-      ? host
+      ? clientCount > 1
+        ? `${host} • ${clientCount} ĐT`
+        : host
       : status === 'connecting'
-      ? 'Đang nối...'
-      : 'Chạm kết nối TV';
+      ? 'Đang nối TV...'
+      : 'Bấm kết nối TV';
 
   const statusDotColor =
     status === 'connected'
@@ -95,7 +103,7 @@ export default function App() {
           style={styles.flexOne}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          {/* Thanh tiêu đề thương hiệu ZenBox & Trạng thái kết nối TV */}
+          {/* Thanh tiêu đề thương hiệu ZenBox & Trạng thái kết nối đa thiết bị */}
           <View style={styles.header}>
             <View style={styles.brandRow}>
               <Svg width={30} height={30} viewBox="0 0 48 48">
@@ -113,7 +121,11 @@ export default function App() {
               </Svg>
               <View>
                 <Text style={styles.brandTitle}>ZenBox Remote</Text>
-                <Text style={styles.brandSub}>Điều khiển thông minh</Text>
+                <Text style={styles.brandSub}>
+                  {isConnected && remoteState.serverName
+                    ? `TV: ${remoteState.serverName}`
+                    : 'Điều khiển đa thiết bị'}
+                </Text>
               </View>
             </View>
 
@@ -133,6 +145,19 @@ export default function App() {
               </Text>
             </TouchableOpacity>
           </View>
+
+          {/* Thanh cảnh báo nhanh nếu chưa kết nối để người dùng biết ngay vì sao cần kết nối trước khi bấm */}
+          {!isConnected && (
+            <TouchableOpacity
+              style={styles.offlineBanner}
+              activeOpacity={0.85}
+              onPress={() => setConnectModalVisible(true)}
+            >
+              <Text style={styles.offlineBannerText}>
+                ⚠ Chưa nối với ZenBox PC — Chạm vào đây để quét Wi-Fi hoặc nhập IP kết nối
+              </Text>
+            </TouchableOpacity>
+          )}
 
           {/* Thanh Tìm Kiếm Realtime luôn sẵn sàng ở mọi màn hình */}
           <RealtimeSearchBar
@@ -236,7 +261,7 @@ const styles = StyleSheet.create({
   connectionPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    maxWidth: 168,
+    maxWidth: 185,
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 16,
@@ -258,6 +283,22 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     fontSize: 12,
     fontWeight: '700',
+  },
+  offlineBanner: {
+    marginHorizontal: 16,
+    marginBottom: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: Colors.warningBg,
+    borderWidth: 1,
+    borderColor: 'rgba(251, 191, 36, 0.38)',
+  },
+  offlineBannerText: {
+    color: '#FDE68A',
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'center',
   },
   mainContent: {
     flex: 1,

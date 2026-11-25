@@ -963,6 +963,78 @@ public sealed class WebBrowserService : IDisposable
         }
     }
 
+    public async Task ToggleActiveWebMediaPlayPauseAsync()
+    {
+        var active = _browserPool.Values.FirstOrDefault(v => v.Visibility == Visibility.Visible);
+        if (active?.CoreWebView2 is not { } core)
+        {
+            return;
+        }
+
+        const string toggleJs = """
+            (() => {
+                const media = Array.from(document.querySelectorAll('video, audio'))
+                    .find(m => m.readyState > 0 || !m.paused) || document.querySelector('video, audio');
+                if (media) {
+                    if (media.paused) { media.play().catch(()=>{}); return 'PLAYED'; }
+                    else { media.pause(); return 'PAUSED'; }
+                }
+                const playBtn = document.querySelector(
+                    'button[data-testid="control-button-playpause"], button.ytp-play-button, button[aria-label*="Play" i], button[aria-label*="Pause" i]'
+                );
+                if (playBtn) { playBtn.click(); return 'CLICKED'; }
+                return 'NONE';
+            })()
+            """;
+
+        try
+        {
+            var res = (await core.ExecuteScriptAsync(toggleJs))?.Trim('"');
+            if (res == "NONE")
+            {
+                await SendCdpKeyAsync(core, " ", "Space", 32);
+            }
+        }
+        catch
+        {
+        }
+    }
+
+    public async Task SeekActiveWebMediaAsync(int deltaSeconds)
+    {
+        var active = _browserPool.Values.FirstOrDefault(v => v.Visibility == Visibility.Visible);
+        if (active?.CoreWebView2 is not { } core)
+        {
+            return;
+        }
+
+        var seekJs = $$"""
+            (() => {
+                const media = document.querySelector('video, audio');
+                if (media && Number.isFinite(media.currentTime)) {
+                    media.currentTime = Math.max(0, media.currentTime + ({{deltaSeconds}}));
+                    return 'SEEKED';
+                }
+                return 'NONE';
+            })()
+            """;
+
+        try
+        {
+            var res = (await core.ExecuteScriptAsync(seekJs))?.Trim('"');
+            if (res == "NONE")
+            {
+                if (deltaSeconds < 0)
+                    await SendCdpKeyAsync(core, "ArrowLeft", "ArrowLeft", 37);
+                else
+                    await SendCdpKeyAsync(core, "ArrowRight", "ArrowRight", 39);
+            }
+        }
+        catch
+        {
+        }
+    }
+
     public async Task SendNavigationKeyToActiveTabAsync(string direction)
     {
         var active = _browserPool.Values.FirstOrDefault(v => v.Visibility == Visibility.Visible);
@@ -987,6 +1059,28 @@ public sealed class WebBrowserService : IDisposable
         if (vk != 0)
         {
             await SendCdpKeyAsync(core, key, code, vk);
+
+            // Hỗ trợ cuộn mượt danh sách video khi người dùng bấm Lên/Xuống trên trang chủ YouTube / Web
+            if (direction is "UP" or "DOWN" && !core.ContainsFullScreenElement)
+            {
+                int scrollStep = direction == "DOWN" ? 320 : -320;
+                var scrollFallbackJs = $$"""
+                    (() => {
+                        const a = document.activeElement;
+                        const isInput = a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.isContentEditable);
+                        if (!isInput && !location.hostname.includes('tiktok.com')) {
+                            window.scrollBy({ top: {{scrollStep}}, behavior: 'smooth' });
+                        }
+                    })()
+                    """;
+                try
+                {
+                    _ = await core.ExecuteScriptAsync(scrollFallbackJs);
+                }
+                catch
+                {
+                }
+            }
         }
     }
 

@@ -84,6 +84,15 @@ public sealed partial class SettingsViewModel : ObservableObject
     private string _remoteEndpointDisplay = string.Empty;
 
     [ObservableProperty]
+    private string _connectedPhonesText = "Sẵn sàng nhận kết nối từ nhiều điện thoại";
+
+    [ObservableProperty]
+    private string _firewallStatusText = string.Empty;
+
+    [ObservableProperty]
+    private bool _isFirewallBlocked;
+
+    [ObservableProperty]
     private string _sleepTimerStatusText = "Đang tắt";
 
     [ObservableProperty]
@@ -238,22 +247,33 @@ public sealed partial class SettingsViewModel : ObservableObject
         var ramMb = proc.WorkingSet64 / (1024.0 * 1024.0);
         RamUsageText = $"{ramMb:0} MB RAM";
         ActiveBackgroundAppsText = $"{_webBrowserService.ActivePoolCount} ứng dụng trực tuyến đang giữ sẵn";
-        RemoteEndpointDisplay = $"ws://{ResolveLocalIpAddress()}:{_configService.Current.RemotePort}";
+
+        var allIps = NetworkAddressHelper.GetRealLanIpAddresses();
+        var port = _configService.Current.RemotePort;
+        RemoteEndpointDisplay = string.Join("  •  ", allIps.Select(ip => $"{ip}:{port}"));
+
+        var allowed = FirewallHelperService.IsPortAllowedInFirewall(port);
+        IsFirewallBlocked = !allowed;
+        FirewallStatusText = allowed
+            ? "Tường lửa Windows: Đã mở cổng kết nối cho mọi điện thoại cùng Wi-Fi"
+            : "Tường lửa Windows đang chặn kết nối từ điện thoại — hãy bấm nút Mở cổng Wi-Fi bên cạnh";
     }
 
-    private static string ResolveLocalIpAddress()
+    public void UpdateConnectedPhonesCount(int count)
     {
-        try
-        {
-            var host = Dns.GetHostEntry(Dns.GetHostName());
-            var ip = host.AddressList.FirstOrDefault(a =>
-                a.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(a));
-            return ip?.ToString() ?? "127.0.0.1";
-        }
-        catch
-        {
-            return "127.0.0.1";
-        }
+        ConnectedPhonesText = count > 0
+            ? $"Đang có {count} điện thoại cùng kết nối điều khiển trực tiếp"
+            : "Sẵn sàng cho nhiều điện thoại cùng kết nối điều khiển";
+    }
+
+    [RelayCommand]
+    private void OpenFirewallPort()
+    {
+        var ok = FirewallHelperService.RequestOpenFirewallPort(_configService.Current.RemotePort);
+        RefreshSystemDiagnostics();
+        ShowConfirmation(ok
+            ? "Đã mở cổng Wi-Fi thành công! Giờ mọi điện thoại trong nhà đều có thể tự động dò tìm và điều khiển."
+            : "Chưa cấp quyền Tường lửa Windows. Vui lòng bấm lại và chọn Yes trên hộp thoại xác nhận.");
     }
 
     partial void OnActiveCategoryIndexChanged(int value)

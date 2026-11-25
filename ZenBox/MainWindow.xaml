@@ -221,6 +221,7 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <TextBlock Grid.Column="0"
                                Text="Mẹo nhanh: Bấm viên ngọc nổi bên phải để đổi ứng dụng, chỉnh âm thanh EQ, lọc ánh sáng xanh hoặc hẹn giờ ngủ."
@@ -229,6 +230,13 @@
                                VerticalAlignment="Center"
                                TextTrimming="CharacterEllipsis" />
                     <TextBlock Grid.Column="1"
+                               Text="{Binding RemoteConnectionSummaryText}"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource SuccessGreenBrush}"
+                               VerticalAlignment="Center"
+                               Margin="24,0,0,0" />
+                    <TextBlock Grid.Column="2"
                                Text="{Binding QuickAudioPresetLabel, StringFormat='Âm thanh: {0}'}"
                                FontSize="18"
                                FontWeight="Medium"

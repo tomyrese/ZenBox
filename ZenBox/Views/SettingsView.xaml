@@ -601,28 +601,32 @@
                             </StackPanel>
                         </Border>
 
-                        <Border Style="{StaticResource GlassPanelBorderStyle}" Padding="30,22">
+                        <!-- Điều khiển qua nhiều Điện thoại cùng lúc & Tường lửa Wi-Fi -->
+                        <Border Style="{StaticResource GlassPanelBorderStyle}" Padding="30,22" Margin="0,0,0,18">
                             <Grid ClipToBounds="False">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <CheckBox Grid.Column="0"
-                                          Style="{StaticResource LargeSwitchCheckBoxStyle}"
-                                          IsChecked="{Binding StartWithWindows, Mode=TwoWay}"
-                                          Content="Tự khởi động cùng Windows 11 khi bật nguồn" />
-                                <Border Grid.Column="1"
-                                        Background="#18FFFFFF"
-                                        BorderBrush="#30FFFFFF"
-                                        BorderThickness="1"
-                                        CornerRadius="18"
-                                        Padding="18,10"
-                                        VerticalAlignment="Center">
-                                    <TextBlock Text="{Binding RemoteEndpointDisplay, StringFormat='Điều khiển điện thoại: {0}'}"
-                                               FontSize="18"
-                                               Foreground="{StaticResource AccentCyanBrush}" />
-                                </Border>
+                                <StackPanel Grid.Column="0" Margin="0,0,20,0" VerticalAlignment="Center">
+                                    <TextBlock Text="Điều khiển bằng nhiều Điện thoại qua Wi-Fi" FontSize="22" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" />
+                                    <TextBlock Text="{Binding RemoteEndpointDisplay, StringFormat='Địa chỉ IP Wi-Fi thật: {0}'}" FontSize="20" FontWeight="Bold" Foreground="{StaticResource AccentCyanBrush}" Margin="0,6,0,2" />
+                                    <TextBlock Text="{Binding ConnectedPhonesText}" FontSize="18" Foreground="{StaticResource SuccessGreenBrush}" Margin="0,2,0,2" />
+                                    <TextBlock Text="{Binding FirewallStatusText}" FontSize="17" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" />
+                                </StackPanel>
+                                <Button Grid.Column="1"
+                                        Content="Mở cổng Wi-Fi"
+                                        Style="{StaticResource PrimaryCyanButtonStyle}"
+                                        Command="{Binding OpenFirewallPortCommand}"
+                                        MinWidth="210"
+                                        VerticalAlignment="Center" />
                             </Grid>
+                        </Border>
+
+                        <Border Style="{StaticResource GlassPanelBorderStyle}" Padding="30,22">
+                            <CheckBox Style="{StaticResource LargeSwitchCheckBoxStyle}"
+                                      IsChecked="{Binding StartWithWindows, Mode=TwoWay}"
+                                      Content="Tự khởi động cùng Windows 11 khi bật nguồn" />
                         </Border>
                     </StackPanel>
 

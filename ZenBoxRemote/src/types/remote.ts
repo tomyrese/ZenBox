@@ -18,10 +18,13 @@ export interface RemoteCommand {
   value?: number;
   dx?: number;
   dy?: number;
+  deviceId?: string;
+  deviceName?: string;
 }
 
 export interface RemoteState {
   type: string;
+  serverName?: string;
   activeSection: string;
   activeTitle: string;
   volume: number;
@@ -30,10 +33,19 @@ export interface RemoteState {
   audioPresetLabel: string;
   eyeCare: string;
   sleepTimer: string;
+  connectedClients?: number;
+}
+
+export interface DiscoveredZenBoxDevice {
+  ip: string;
+  port: number;
+  serverName: string;
+  connectedClients: number;
 }
 
 export const DEFAULT_REMOTE_STATE: RemoteState = {
   type: 'STATE',
+  serverName: 'ZenBox TV',
   activeSection: 'Home',
   activeTitle: 'Trang Chủ ZenBox',
   volume: 60,
@@ -42,4 +54,5 @@ export const DEFAULT_REMOTE_STATE: RemoteState = {
   audioPresetLabel: 'Chuẩn cân bằng',
   eyeCare: 'Off',
   sleepTimer: 'Hẹn giờ: Tắt',
+  connectedClients: 0,
 };

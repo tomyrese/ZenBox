@@ -6,6 +6,7 @@ public sealed class AppConfig
     public string MusicFolderPath { get; set; } = GetDefaultMusicFolder();
     public bool StartWithWindows { get; set; }
     public int RemotePort { get; set; } = 8989;
+    public bool FirewallPromptShown { get; set; }
     public double? FloatingButtonLeft { get; set; }
     public double? FloatingButtonTop { get; set; }
 

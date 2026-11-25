@@ -1,3 +1,8 @@
+using System.Net;
+using System.Net.Http;
+using System.Net.Sockets;
+using System.Net.WebSockets;
+using System.Text;
 using System.Text.Json;
 using ZenBox.Models;
 using ZenBox.Services;
@@ -8,31 +13,98 @@ namespace ZenBox.Tests;
 public sealed class RemoteProtocolTests
 {
     [Fact]
-    public void RemoteCommandPayload_ShouldDeserializeRealtimeSearchAndTouchpadFields()
+    public void NetworkAddressHelper_ShouldExcludeRadminVpnRange()
     {
-        const string json = """
-            {
-                "action": "SEARCH_REALTIME",
-                "target": "YOUTUBE",
-                "text": "Nhạc Trịnh Công Sơn",
-                "value": 75,
-                "dx": 14.5,
-                "dy": -8.2
-            }
-            """;
+        var ips = NetworkAddressHelper.GetRealLanIpAddresses();
+        Assert.NotEmpty(ips);
+        Assert.All(ips, ip => Assert.False(ip.StartsWith("26."), $"Không được trả về IP Radmin VPN ảo: {ip}"));
+    }
 
-        var payload = JsonSerializer.Deserialize<RemoteCommandPayload>(json, new JsonSerializerOptions
+    [Fact]
+    public async Task RemoteControlServer_ShouldSupportHttpDiscoveryAndMultipleSimultaneousPhones()
+    {
+        int freePort;
+        using (var tempListener = new TcpListener(IPAddress.Loopback, 0))
         {
-            PropertyNameCaseInsensitive = true
-        });
+            tempListener.Start();
+            freePort = ((IPEndPoint)tempListener.LocalEndpoint).Port;
+        }
 
-        Assert.NotNull(payload);
-        Assert.Equal("SEARCH_REALTIME", payload.Action);
-        Assert.Equal("YOUTUBE", payload.Target);
-        Assert.Equal("Nhạc Trịnh Công Sơn", payload.Text);
-        Assert.Equal(75, payload.Value);
-        Assert.Equal(14.5, payload.Dx);
-        Assert.Equal(-8.2, payload.Dy);
+        var tempDir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "ZenBox_MultiPhone_" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var err = new ErrorHandlingService(tempDir);
+            string lastAction = string.Empty;
+            string lastSearch = string.Empty;
+
+            using var server = new RemoteControlServer(
+                freePort,
+                err,
+                cmd =>
+                {
+                    lastAction = cmd.Action ?? string.Empty;
+                    if (!string.IsNullOrEmpty(cmd.Text))
+                    {
+                        lastSearch = cmd.Text;
+                    }
+                },
+                () => new RemoteStateDto
+                {
+                    ActiveSection = "YouTube",
+                    ActiveTitle = "YouTube",
+                    Volume = 72
+                });
+
+            server.Start();
+            Assert.True(server.IsRunning);
+
+            // 1. Kiểm tra dò tìm tự động qua HTTP GET /zenbox-info trên cùng cổng
+            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(3) };
+            var infoJson = await http.GetStringAsync($"http://127.0.0.1:{freePort}/zenbox-info");
+            var info = JsonSerializer.Deserialize<RemoteDiscoveryInfoDto>(infoJson, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            Assert.NotNull(info);
+            Assert.Equal("ZenBox", info.App);
+            Assert.Equal(freePort, info.Port);
+
+            // 2. Kết nối đồng thời 3 điện thoại qua WebSocket cùng một lúc
+            using var phone1 = new ClientWebSocket();
+            using var phone2 = new ClientWebSocket();
+            using var phone3 = new ClientWebSocket();
+
+            var wsUri = new Uri($"ws://127.0.0.1:{freePort}");
+            await Task.WhenAll(
+                phone1.ConnectAsync(wsUri, CancellationToken.None),
+                phone2.ConnectAsync(wsUri, CancellationToken.None),
+                phone3.ConnectAsync(wsUri, CancellationToken.None));
+
+            await Task.Delay(120);
+            Assert.Equal(3, server.ConnectedClientCount);
+
+            // 3. Điện thoại 1 gõ tìm kiếm realtime tiếng Việt
+            var cmdBytes = Encoding.UTF8.GetBytes("""{"action":"SEARCH_REALTIME","target":"YOUTUBE","text":"Sơn Tùng M-TP"}""");
+            await phone1.SendAsync(cmdBytes, WebSocketMessageType.Text, true, CancellationToken.None);
+            await Task.Delay(100);
+            Assert.Equal("SEARCH_REALTIME", lastAction);
+            Assert.Equal("Sơn Tùng M-TP", lastSearch);
+
+            // 4. Điện thoại dự phòng gửi lệnh qua HTTP POST /zenbox-cmd trong khi 3 máy WebSocket vẫn đang giữ kết nối
+            using var postContent = new StringContent("""{"action":"VOL_UP"}""", Encoding.UTF8, "application/json");
+            var postResp = await http.PostAsync($"http://127.0.0.1:{freePort}/zenbox-cmd", postContent);
+            Assert.True(postResp.IsSuccessStatusCode);
+            Assert.Equal("VOL_UP", lastAction);
+            Assert.Equal(3, server.ConnectedClientCount);
+        }
+        finally
+        {
+            if (System.IO.Directory.Exists(tempDir))
+            {
+                System.IO.Directory.Delete(tempDir, recursive: true);
+            }
+        }
     }
 
     [Fact]
@@ -50,7 +122,6 @@ public sealed class RemoteProtocolTests
 
             using var mainVm = new MainViewModel(err, cfg, net, audio, web, media);
 
-            // 1. Gửi lệnh tìm kiếm realtime vào Kho Phim Offline từ điện thoại
             mainVm.HandleRemoteCommand(new RemoteCommandPayload
             {
                 Action = "SEARCH_REALTIME",
@@ -61,7 +132,6 @@ public sealed class RemoteProtocolTests
             Assert.Equal(AppSection.OfflineMovies, mainVm.ActiveSection);
             Assert.Equal("Bố Già", mainVm.MediaLibraryVm.SearchKeyword);
 
-            // 2. Đổi cấu hình âm thanh EQ & Bảo vệ mắt & Hẹn giờ từ điện thoại
             mainVm.HandleRemoteCommand(new RemoteCommandPayload
             {
                 Action = "SET_AUDIO_PRESET",
@@ -86,7 +156,6 @@ public sealed class RemoteProtocolTests
             Assert.Equal("WarmSoft", snapshot.EyeCare);
             Assert.True(mainVm.IsSleepTimerActive);
 
-            // 3. Quay lại Trang Chủ bằng lệnh HOME từ điện thoại
             mainVm.HandleRemoteCommand(new RemoteCommandPayload { Action = "HOME" });
             Assert.Equal(AppSection.Home, mainVm.ActiveSection);
         }

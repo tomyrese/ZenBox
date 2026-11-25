@@ -10,7 +10,7 @@
 [![Architecture](https://img.shields.io/badge/Architecture-MVVM%20Clean-38BDF8?style=for-the-badge)](./ZenBox-Skills/skills/03-core-architecture.md)
 [![AdBlock](https://img.shields.io/badge/Ad--Shield-uBlock%20Origin%20%2B%20Network%20Filter-E50914?style=for-the-badge)](./ZenBox/Services/WebBrowserService.cs)
 [![Mobile](https://img.shields.io/badge/Mobile%20Remote-React%20Native%20(Expo)-61DAFB?style=for-the-badge&logo=react&logoColor=black)](./ZenBoxRemote)
-[![Tests](https://img.shields.io/badge/Tests-22%2F22%20Passing-34D399?style=for-the-badge)](#kiểm-thử-tự-động--đảm-bảo-chất-lượng)
+[![Tests](https://img.shields.io/badge/Tests-23%2F23%20Passing-34D399?style=for-the-badge)](#kiểm-thử-tự-động--đảm-bảo-chất-lượng)
 
 </div>
 
@@ -205,7 +205,7 @@ Sau khi xuất bản hoàn tất, khởi chạy trực tiếp tệp `./publish/Z
 
 ## Kiểm thử Tự động & Đảm bảo Chất lượng
 
-Dự án duy trì bộ **22 bài kiểm thử tự động (xUnit)** chạy nghiệm thu nghiêm ngặt:
+Dự án duy trì bộ **23 bài kiểm thử tự động (xUnit)** chạy nghiệm thu nghiêm ngặt:
 - **`UiComplianceTests`**: Quét tự động toàn bộ mã nguồn `.xaml` bằng cả Regex lẫn XML Parser, đảm bảo không tồn tại bất kỳ cỡ chữ nào nhỏ hơn `16px` và không rò rỉ thuật ngữ kỹ thuật tiếng Anh lên giao diện người dùng.
 - **`AssetVerificationTests`**: Xác minh tính toàn vẹn của `uBlock Origin (manifest.json)`, biểu tượng đa phân giải `zenbox.ico` và độ chính xác của bộ lọc chặn quảng cáo tầng mạng.
 - **`BrandLogoFactoryTests`**: Kiểm tra toàn bộ 19 biểu tượng Vector đa lớp ở trạng thái `Frozen` tối ưu GPU, bộ 6 cấu hình âm thanh 10 dải tần và đồng bộ trạng thái các nút trong Trung tâm Cài đặt.

@@ -83,6 +83,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private bool _isWebVideoFullscreen;
 
+    [ObservableProperty]
+    private string _remoteConnectionSummaryText = string.Empty;
+
     public bool IsHomeVisible => ActiveSection == AppSection.Home;
     public bool IsNotHome => ActiveSection != AppSection.Home;
 
@@ -194,6 +197,30 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             _errorService,
             HandleRemoteCommand,
             BuildRemoteStateSnapshot);
+
+        _remoteServer.ConnectedClientsChanged += (_, count) =>
+        {
+            if (Application.Current?.Dispatcher is { } disp && !disp.CheckAccess())
+            {
+                _ = disp.InvokeAsync(() => UpdateRemoteConnectionSummary(count));
+            }
+            else
+            {
+                UpdateRemoteConnectionSummary(count);
+            }
+        };
+
+        UpdateRemoteConnectionSummary(0);
+    }
+
+    private void UpdateRemoteConnectionSummary(int count)
+    {
+        var lanIp = NetworkAddressHelper.GetPrimaryLanIp();
+        var port = _configService.Current.RemotePort;
+        RemoteConnectionSummaryText = count > 0
+            ? $"ĐT kết nối: {count} máy ({lanIp}:{port})"
+            : $"Điều khiển ĐT: {lanIp}:{port}";
+        SettingsVm.UpdateConnectedPhonesCount(count);
     }
 
     public RemoteStateDto BuildRemoteStateSnapshot()
@@ -230,7 +257,20 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     public void StartDeferredBackgroundServices()
     {
-        _ = Task.Run(() => _remoteServer.Start());
+        var port = _configService.Current.RemotePort;
+        _ = Task.Run(() =>
+        {
+            _remoteServer.Start();
+            bool isWarmup = Environment.GetCommandLineArgs().Any(a => string.Equals(a, "--warmup", StringComparison.OrdinalIgnoreCase));
+            if (!isWarmup && !FirewallHelperService.IsPortAllowedInFirewall(port) && !_configService.Current.FirewallPromptShown)
+            {
+                _configService.Current.FirewallPromptShown = true;
+                _configService.Save();
+                FirewallHelperService.RequestOpenFirewallPort(port);
+                Application.Current?.Dispatcher?.InvokeAsync(() => SettingsVm.RefreshSystemDiagnostics());
+            }
+        });
+        UpdateRemoteConnectionSummary(_remoteServer.ConnectedClientCount);
         SyncLiveSystemVolume();
         WebVm.TriggerBackgroundWarmup();
     }
@@ -258,6 +298,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
         _audioService.SetMasterVolumePercent(value);
         IsSystemMuted = false;
+        _remoteServer?.BroadcastState();
     }
 
     partial void OnActiveSectionChanged(AppSection value)
@@ -267,6 +308,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         {
             SettingsVm.RefreshSystemDiagnostics();
         }
+        _remoteServer?.BroadcastState();
     }
 
     partial void OnIsErrorVisibleChanged(bool value)
@@ -318,6 +360,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         MediaPlayerVm.ApplyEqualizerPreset(preset);
         _webBrowserService.ApplyAudioPresetToAllTabs(preset);
         SettingsVm.SyncSelectedPresetFromExternal(preset);
+        _remoteServer?.BroadcastState();
     }
 
     public void ApplyEyeCareMode(EyeCareMode mode)
@@ -342,6 +385,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         }
 
         SettingsVm.SyncEyeCareFromExternal(mode);
+        _remoteServer?.BroadcastState();
     }
 
     public void SetSleepTimerMinutes(int minutes)
@@ -360,6 +404,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             SettingsVm.SyncSleepTimerMinutesFromExternal(minutes, $"Đang hẹn {minutes} phút");
             UpdateClockAndTimers();
         }
+        _remoteServer?.BroadcastState();
     }
 
     [RelayCommand]
@@ -568,6 +613,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     {
         _audioService.ToggleMute();
         IsSystemMuted = _audioService.IsMuted();
+        _remoteServer?.BroadcastState();
     }
 
     [RelayCommand]
@@ -684,7 +730,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 }
                 else if (IsOnlineAppActive)
                 {
-                    _ = _webBrowserService.SendNavigationKeyToActiveTabAsync("PLAY_PAUSE");
+                    _ = _webBrowserService.ToggleActiveWebMediaPlayPauseAsync();
                 }
                 break;
             case "SEEK_BACK":
@@ -694,7 +740,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 }
                 else if (IsOnlineAppActive)
                 {
-                    _ = _webBrowserService.SendNavigationKeyToActiveTabAsync("LEFT");
+                    _ = _webBrowserService.SeekActiveWebMediaAsync(-15);
                 }
                 break;
             case "SEEK_FORWARD":
@@ -704,7 +750,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 }
                 else if (IsOnlineAppActive)
                 {
-                    _ = _webBrowserService.SendNavigationKeyToActiveTabAsync("RIGHT");
+                    _ = _webBrowserService.SeekActiveWebMediaAsync(15);
                 }
                 break;
             case "DPAD_UP":
@@ -809,17 +855,33 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             return;
         }
 
+        mainWin.Activate();
+        var currentFocusedBtn = System.Windows.Input.Keyboard.FocusedElement as System.Windows.Controls.Primitives.ButtonBase;
+        if (currentFocusedBtn is null || !currentFocusedBtn.IsVisible)
+        {
+            var firstBtn = FindFirstVisibleButton(mainWin);
+            if (firstBtn is not null)
+            {
+                firstBtn.Focus();
+                if (dir != "OK")
+                {
+                    return;
+                }
+                currentFocusedBtn = firstBtn;
+            }
+        }
+
         if (dir == "OK")
         {
-            if (System.Windows.Input.Keyboard.FocusedElement is System.Windows.Controls.Primitives.ButtonBase focusedBtn)
+            if (currentFocusedBtn is not null)
             {
-                if (focusedBtn.Command?.CanExecute(focusedBtn.CommandParameter) == true)
+                if (currentFocusedBtn.Command?.CanExecute(currentFocusedBtn.CommandParameter) == true)
                 {
-                    focusedBtn.Command.Execute(focusedBtn.CommandParameter);
+                    currentFocusedBtn.Command.Execute(currentFocusedBtn.CommandParameter);
                 }
                 else
                 {
-                    focusedBtn.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+                    currentFocusedBtn.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
                 }
             }
             return;
@@ -834,11 +896,35 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             _ => (System.Windows.Input.FocusNavigationDirection?)null
         };
 
-        if (focusDir.HasValue)
+        if (focusDir.HasValue && currentFocusedBtn is not null)
         {
-            var current = System.Windows.Input.Keyboard.FocusedElement as UIElement ?? mainWin;
-            current.MoveFocus(new System.Windows.Input.TraversalRequest(focusDir.Value));
+            currentFocusedBtn.MoveFocus(new System.Windows.Input.TraversalRequest(focusDir.Value));
         }
+    }
+
+    private static System.Windows.Controls.Primitives.ButtonBase? FindFirstVisibleButton(DependencyObject parent)
+    {
+        int count = VisualTreeHelper.GetChildrenCount(parent);
+        for (int i = 0; i < count; i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+            if (child is UIElement ui && ui.Visibility != Visibility.Visible)
+            {
+                continue;
+            }
+
+            if (child is System.Windows.Controls.Primitives.ButtonBase btn && btn.IsVisible && btn.IsEnabled && btn.Focusable)
+            {
+                return btn;
+            }
+
+            var nested = FindFirstVisibleButton(child);
+            if (nested is not null)
+            {
+                return nested;
+            }
+        }
+        return null;
     }
 
     private void HandleRealtimeSearch(string query, string? targetScope, bool submit)
