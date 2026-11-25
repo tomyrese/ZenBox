@@ -5,18 +5,18 @@
 
     <ScrollViewer VerticalScrollBarVisibility="Auto"
                   HorizontalScrollBarVisibility="Disabled"
-                  Padding="48,28,48,24">
+                  Padding="56,34,56,24">
         <StackPanel>
             <!-- Khu vực 1: Giải trí trực tuyến -->
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,22">
-                <Border Width="8" Height="36" CornerRadius="4" Background="{StaticResource AccentCyanBrush}" Margin="0,0,16,0" />
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,24">
+                <Border Width="6" Height="30" CornerRadius="3" Background="{StaticResource AccentCyanBrush}" Margin="0,0,14,0" />
                 <TextBlock Text="Giải trí trực tuyến"
-                           FontSize="34"
+                           FontSize="32"
                            FontWeight="Bold"
                            Foreground="{StaticResource TextPrimaryBrush}" />
             </StackPanel>
 
-            <ItemsControl ItemsSource="{Binding OnlineTiles}" Margin="0,0,0,24">
+            <ItemsControl ItemsSource="{Binding OnlineTiles}" Margin="0,0,0,22">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                         <WrapPanel Orientation="Horizontal" />
@@ -27,45 +27,75 @@
                         <Button Style="{StaticResource GlassTileButtonStyle}"
                                 Command="{Binding DataContext.SelectTileCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                 CommandParameter="{Binding}"
-                                Width="330"
-                                Height="215">
-                            <StackPanel VerticalAlignment="Center">
-                                <Border Width="72"
-                                        Height="72"
-                                        CornerRadius="22"
-                                        Background="#22FFFFFF"
-                                        BorderBrush="{Binding AccentBrush}"
-                                        BorderThickness="2"
-                                        HorizontalAlignment="Left"
-                                        Margin="0,0,0,18">
-                                    <TextBlock Text="{Binding IconSymbol}"
-                                               FontSize="34"
+                                Width="336"
+                                Height="232"
+                                Padding="26,24">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+
+                                <!-- Hàng trên: Huy hiệu Icon Vector Gradient + Mũi tên mở tinh tế -->
+                                <Grid Grid.Row="0" Margin="0,0,0,20">
+                                    <Border Width="64"
+                                            Height="64"
+                                            CornerRadius="18"
+                                            Background="{Binding BadgeBrush}"
+                                            HorizontalAlignment="Left">
+                                        <Border.Effect>
+                                            <DropShadowEffect BlurRadius="18" ShadowDepth="4" Opacity="0.45" Color="#000000" />
+                                        </Border.Effect>
+                                        <Path Data="{Binding IconGeometry}"
+                                              Fill="#FFFFFF"
+                                              Stretch="Uniform"
+                                              Width="30"
+                                              Height="30"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                                    </Border>
+
+                                    <Border Width="36"
+                                            Height="36"
+                                            CornerRadius="18"
+                                            Background="#16FFFFFF"
+                                            HorizontalAlignment="Right"
+                                            VerticalAlignment="Top">
+                                        <Path Data="{StaticResource IconChevronRightGeometry}"
+                                              Fill="#94A3B8"
+                                              Stretch="Uniform"
+                                              Width="14"
+                                              Height="14"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                                    </Border>
+                                </Grid>
+
+                                <!-- Hàng dưới: Tiêu đề & Phụ đề rõ ràng, không bao giờ cắt chữ -->
+                                <StackPanel Grid.Row="1" VerticalAlignment="Bottom">
+                                    <TextBlock Text="{Binding Title}"
+                                               FontSize="25"
                                                FontWeight="Bold"
-                                               Foreground="{Binding AccentBrush}"
-                                               HorizontalAlignment="Center"
-                                               VerticalAlignment="Center" />
-                                </Border>
-                                <TextBlock Text="{Binding Title}"
-                                           FontSize="26"
-                                           FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}"
-                                           Margin="0,0,0,6" />
-                                <TextBlock Text="{Binding Subtitle}"
-                                           FontSize="18"
-                                           FontWeight="Regular"
-                                           Foreground="{StaticResource TextSecondaryBrush}"
-                                           TextWrapping="Wrap" />
-                            </StackPanel>
+                                               Foreground="{StaticResource TextPrimaryBrush}"
+                                               Margin="0,0,0,6" />
+                                    <TextBlock Text="{Binding Subtitle}"
+                                               FontSize="18"
+                                               FontWeight="Regular"
+                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                               TextWrapping="Wrap"
+                                               LineHeight="24" />
+                                </StackPanel>
+                            </Grid>
                         </Button>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <!-- Khu vực 2: Thư viện trong máy & Hệ thống -->
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,12,0,22">
-                <Border Width="8" Height="36" CornerRadius="4" Background="{StaticResource SuccessGreenBrush}" Margin="0,0,16,0" />
+            <!-- Khu vực 2: Thư viện của tôi & Hệ thống -->
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,8,0,24">
+                <Border Width="6" Height="30" CornerRadius="3" Background="{StaticResource SuccessGreenBrush}" Margin="0,0,14,0" />
                 <TextBlock Text="Thư viện của tôi &amp; Hệ thống"
-                           FontSize="34"
+                           FontSize="32"
                            FontWeight="Bold"
                            Foreground="{StaticResource TextPrimaryBrush}" />
             </StackPanel>
@@ -81,35 +111,63 @@
                         <Button Style="{StaticResource GlassTileButtonStyle}"
                                 Command="{Binding DataContext.SelectTileCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                 CommandParameter="{Binding}"
-                                Width="330"
-                                Height="215">
-                            <StackPanel VerticalAlignment="Center">
-                                <Border Width="72"
-                                        Height="72"
-                                        CornerRadius="22"
-                                        Background="#22FFFFFF"
-                                        BorderBrush="{Binding AccentBrush}"
-                                        BorderThickness="2"
-                                        HorizontalAlignment="Left"
-                                        Margin="0,0,0,18">
-                                    <TextBlock Text="{Binding IconSymbol}"
-                                               FontSize="34"
+                                Width="336"
+                                Height="232"
+                                Padding="26,24">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+
+                                <Grid Grid.Row="0" Margin="0,0,0,20">
+                                    <Border Width="64"
+                                            Height="64"
+                                            CornerRadius="18"
+                                            Background="{Binding BadgeBrush}"
+                                            HorizontalAlignment="Left">
+                                        <Border.Effect>
+                                            <DropShadowEffect BlurRadius="18" ShadowDepth="4" Opacity="0.45" Color="#000000" />
+                                        </Border.Effect>
+                                        <Path Data="{Binding IconGeometry}"
+                                              Fill="#FFFFFF"
+                                              Stretch="Uniform"
+                                              Width="30"
+                                              Height="30"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                                    </Border>
+
+                                    <Border Width="36"
+                                            Height="36"
+                                            CornerRadius="18"
+                                            Background="#16FFFFFF"
+                                            HorizontalAlignment="Right"
+                                            VerticalAlignment="Top">
+                                        <Path Data="{StaticResource IconChevronRightGeometry}"
+                                              Fill="#94A3B8"
+                                              Stretch="Uniform"
+                                              Width="14"
+                                              Height="14"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                                    </Border>
+                                </Grid>
+
+                                <StackPanel Grid.Row="1" VerticalAlignment="Bottom">
+                                    <TextBlock Text="{Binding Title}"
+                                               FontSize="25"
                                                FontWeight="Bold"
-                                               Foreground="{Binding AccentBrush}"
-                                               HorizontalAlignment="Center"
-                                               VerticalAlignment="Center" />
-                                </Border>
-                                <TextBlock Text="{Binding Title}"
-                                           FontSize="26"
-                                           FontWeight="SemiBold"
-                                           Foreground="{StaticResource TextPrimaryBrush}"
-                                           Margin="0,0,0,6" />
-                                <TextBlock Text="{Binding Subtitle}"
-                                           FontSize="18"
-                                           FontWeight="Regular"
-                                           Foreground="{StaticResource TextSecondaryBrush}"
-                                           TextWrapping="Wrap" />
-                            </StackPanel>
+                                               Foreground="{StaticResource TextPrimaryBrush}"
+                                               Margin="0,0,0,6" />
+                                    <TextBlock Text="{Binding Subtitle}"
+                                               FontSize="18"
+                                               FontWeight="Regular"
+                                               Foreground="{StaticResource TextSecondaryBrush}"
+                                               TextWrapping="Wrap"
+                                               LineHeight="24" />
+                                </StackPanel>
+                            </Grid>
                         </Button>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>

@@ -1,4 +1,5 @@
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -16,10 +17,12 @@ public sealed partial class MediaPlayerViewModel : ObservableObject, IDisposable
 
     private readonly ErrorHandlingService _errorService;
     private readonly Action<bool> _backToLibraryCallback;
-    private readonly DispatcherTimer _autoHideTimer;
+    private readonly DispatcherTimer _cursorWatchTimer;
 
     private LibVLC? _libVlc;
     private bool _isUserDraggingSlider;
+    private NativePoint _lastCursorPoint;
+    private DateTime _lastMouseMoveUtc = DateTime.UtcNow;
     private bool _disposed;
 
     [ObservableProperty]
@@ -33,6 +36,9 @@ public sealed partial class MediaPlayerViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     private bool _isAudioTrack;
+
+    [ObservableProperty]
+    private bool _isVideoTrack = true;
 
     [ObservableProperty]
     private bool _isPlaying;
@@ -52,23 +58,55 @@ public sealed partial class MediaPlayerViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private bool _isControlsVisible = true;
 
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetCursorPos(out NativePoint lpPoint);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativePoint
+    {
+        public int X;
+        public int Y;
+    }
+
     public MediaPlayerViewModel(ErrorHandlingService errorService, Action<bool> backToLibraryCallback)
     {
         _errorService = errorService;
         _backToLibraryCallback = backToLibraryCallback;
 
-        _autoHideTimer = new DispatcherTimer
+        GetCursorPos(out _lastCursorPoint);
+
+        // Theo dõi chuyển động chuột ở cấp hệ điều hành để tự ẩn/hiện thanh điều khiển mà không cần tạo cửa sổ phủ đè lên VideoView
+        _cursorWatchTimer = new DispatcherTimer
         {
-            Interval = TimeSpan.FromSeconds(3)
+            Interval = TimeSpan.FromMilliseconds(200)
         };
-        _autoHideTimer.Tick += (_, _) =>
+        _cursorWatchTimer.Tick += OnCursorWatchTick;
+    }
+
+    private void OnCursorWatchTick(object? sender, EventArgs e)
+    {
+        if (GetCursorPos(out var current))
         {
-            if (IsPlaying && !IsAudioTrack)
+            if (Math.Abs(current.X - _lastCursorPoint.X) > 3 || Math.Abs(current.Y - _lastCursorPoint.Y) > 3)
+            {
+                _lastCursorPoint = current;
+                _lastMouseMoveUtc = DateTime.UtcNow;
+                if (!IsControlsVisible)
+                {
+                    IsControlsVisible = true;
+                }
+                return;
+            }
+        }
+
+        if (IsPlaying && IsVideoTrack && !_isUserDraggingSlider)
+        {
+            if ((DateTime.UtcNow - _lastMouseMoveUtc).TotalSeconds >= 3.0)
             {
                 IsControlsVisible = false;
             }
-            _autoHideTimer.Stop();
-        };
+        }
     }
 
     private void EnsureVlcInitialized()
@@ -95,7 +133,6 @@ public sealed partial class MediaPlayerViewModel : ObservableObject, IDisposable
             }
         }
 
-        // Bật giải mã phần cứng GPU tự động
         _libVlc = new LibVLC("--avcodec-hw=any", "--quiet");
         var player = new MediaPlayer(_libVlc);
 
@@ -103,7 +140,7 @@ public sealed partial class MediaPlayerViewModel : ObservableObject, IDisposable
         {
             IsPlaying = true;
             PlayPauseButtonText = "Tạm dừng";
-            RestartAutoHideTimer();
+            _lastMouseMoveUtc = DateTime.UtcNow;
         });
 
         player.Paused += (_, _) => RunOnUi(() =>
@@ -167,10 +204,13 @@ public sealed partial class MediaPlayerViewModel : ObservableObject, IDisposable
         CurrentMedia = item;
         MediaTitle = item.Title;
         IsAudioTrack = !item.IsVideo;
+        IsVideoTrack = item.IsVideo;
         CurrentTimeText = "00:00";
         TotalDurationText = "00:00";
         ProgressValue = 0;
         IsControlsVisible = true;
+        _lastMouseMoveUtc = DateTime.UtcNow;
+        GetCursorPos(out _lastCursorPoint);
 
         if (!File.Exists(item.FilePath))
         {
@@ -186,15 +226,13 @@ public sealed partial class MediaPlayerViewModel : ObservableObject, IDisposable
                 return;
             }
 
+            _cursorWatchTimer.Start();
+
             using var media = new Media(_libVlc, new Uri(item.FilePath));
             media.AddOption(":avcodec-hw=any");
             if (!VlcPlayer.Play(media))
             {
                 _errorService.ReportError(ErrorCategory.MediaFileCorrupted, $"Cannot start playback: {item.FilePath}");
-            }
-            else
-            {
-                RestartAutoHideTimer();
             }
         }
         catch (Exception ex)
@@ -205,7 +243,8 @@ public sealed partial class MediaPlayerViewModel : ObservableObject, IDisposable
 
     public void StopPlayback()
     {
-        _autoHideTimer.Stop();
+        _cursorWatchTimer.Stop();
+        IsControlsVisible = true;
         try
         {
             if (VlcPlayer?.IsPlaying == true)
@@ -221,17 +260,8 @@ public sealed partial class MediaPlayerViewModel : ObservableObject, IDisposable
 
     public void NotifyUserActivity()
     {
+        _lastMouseMoveUtc = DateTime.UtcNow;
         IsControlsVisible = true;
-        RestartAutoHideTimer();
-    }
-
-    private void RestartAutoHideTimer()
-    {
-        _autoHideTimer.Stop();
-        if (!IsAudioTrack)
-        {
-            _autoHideTimer.Start();
-        }
     }
 
     public void BeginSliderDrag()
@@ -356,7 +386,7 @@ public sealed partial class MediaPlayerViewModel : ObservableObject, IDisposable
         }
 
         _disposed = true;
-        _autoHideTimer.Stop();
+        _cursorWatchTimer.Stop();
         VlcPlayer?.Dispose();
         _libVlc?.Dispose();
     }

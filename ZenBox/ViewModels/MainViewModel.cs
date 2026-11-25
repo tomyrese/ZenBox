@@ -62,8 +62,16 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public bool IsMediaPlayerVisible =>
         !IsErrorVisible && ActiveSection == AppSection.MediaPlayer;
 
-    public bool IsSettingsVisible =>
-        ActiveSection == AppSection.SystemConfig;
+    public object? ActiveNonWebViewModel => ActiveSection switch
+    {
+        AppSection.Home => HomeVm,
+        AppSection.OfflineMovies or AppSection.OfflineMusic => MediaLibraryVm,
+        AppSection.MediaPlayer => IsErrorVisible ? null : MediaPlayerVm,
+        AppSection.SystemConfig => SettingsVm,
+        _ => null
+    };
+
+    public bool IsNonWebHostVisible => ActiveNonWebViewModel is not null;
 
     public MainViewModel(
         ErrorHandlingService errorService,
@@ -148,7 +156,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(IsWebSectionVisible));
         OnPropertyChanged(nameof(IsMediaLibraryVisible));
         OnPropertyChanged(nameof(IsMediaPlayerVisible));
-        OnPropertyChanged(nameof(IsSettingsVisible));
+        OnPropertyChanged(nameof(ActiveNonWebViewModel));
+        OnPropertyChanged(nameof(IsNonWebHostVisible));
     }
 
     private void UpdateClockAndDate()
@@ -267,6 +276,12 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public void OpenTikTok()
     {
         OpenOnlineChannel(AppSection.TikTok, "https://www.tiktok.com", "TikTok");
+    }
+
+    [RelayCommand]
+    public void OpenWebBrowser()
+    {
+        OpenOnlineChannel(AppSection.WebBrowser, "https://www.google.com", "Trình duyệt Web");
     }
 
     [RelayCommand]

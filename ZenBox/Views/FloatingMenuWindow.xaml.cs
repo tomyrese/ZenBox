@@ -196,6 +196,12 @@ public partial class FloatingMenuWindow : Window
         _mainVm.OpenTikTok();
     }
 
+    private void OnOpenWebBrowserClick(object sender, RoutedEventArgs e)
+    {
+        CollapseQuickMenu();
+        _mainVm.OpenWebBrowser();
+    }
+
     private void OnOpenMoviesClick(object sender, RoutedEventArgs e)
     {
         CollapseQuickMenu();

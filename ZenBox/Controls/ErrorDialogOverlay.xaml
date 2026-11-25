@@ -4,62 +4,62 @@
              FontFamily="{StaticResource PrimaryFontFamily}">
 
     <Grid Background="{StaticResource ModalBackdropBrush}">
-        <Border MaxWidth="860"
+        <Border Width="820"
                 Margin="48"
-                Padding="44"
+                Padding="44,40"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
-                Background="{StaticResource GlassPanelStrongBrush}"
-                BorderBrush="{StaticResource WarningCoralBrush}"
-                BorderThickness="2"
-                CornerRadius="24">
+                Background="#F50D1424"
+                BorderBrush="#66FB7185"
+                BorderThickness="1.5"
+                CornerRadius="28">
             <Border.Effect>
-                <DropShadowEffect BlurRadius="24" ShadowDepth="8" Opacity="0.4" Color="#000000" />
+                <DropShadowEffect BlurRadius="36" ShadowDepth="12" Opacity="0.6" Color="#000000" />
             </Border.Effect>
 
             <StackPanel>
                 <!-- Phần 1: Tiêu đề + Giải thích bình dân -->
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,18">
-                    <Border Width="64"
-                            Height="64"
-                            CornerRadius="32"
+                    <Border Width="60"
+                            Height="60"
+                            CornerRadius="20"
                             Background="{StaticResource WarningCoralSoftBrush}"
                             BorderBrush="{StaticResource WarningCoralBrush}"
-                            BorderThickness="2"
+                            BorderThickness="1.5"
                             Margin="0,0,20,0">
                         <TextBlock Text="!"
-                                   FontSize="36"
+                                   FontSize="34"
                                    FontWeight="Bold"
                                    Foreground="{StaticResource WarningCoralBrush}"
                                    HorizontalAlignment="Center"
                                    VerticalAlignment="Center" />
                     </Border>
                     <TextBlock Text="{Binding ActiveError.Title}"
-                               FontSize="34"
+                               FontSize="32"
                                FontWeight="Bold"
                                Foreground="{StaticResource TextPrimaryBrush}"
                                TextWrapping="Wrap"
                                VerticalAlignment="Center"
-                               MaxWidth="680" />
+                               MaxWidth="640" />
                 </StackPanel>
 
                 <TextBlock Text="{Binding ActiveError.Explanation}"
-                           FontSize="22"
+                           FontSize="21"
                            Foreground="{StaticResource TextSecondaryBrush}"
                            TextWrapping="Wrap"
                            LineHeight="32"
-                           Margin="0,0,0,28" />
+                           Margin="0,0,0,26" />
 
                 <!-- Phần 2: 1-2 bước tự khắc phục đơn giản -->
-                <Border Background="{StaticResource GlassSurfaceBrush}"
-                        BorderBrush="{StaticResource GlassBorderBrush}"
+                <Border Background="#18FFFFFF"
+                        BorderBrush="#2EFFFFFF"
                         BorderThickness="1"
                         CornerRadius="20"
                         Padding="26,22"
-                        Margin="0,0,0,34">
+                        Margin="0,0,0,32">
                     <StackPanel>
                         <TextBlock Text="Cách khắc phục nhanh:"
-                                   FontSize="22"
+                                   FontSize="21"
                                    FontWeight="SemiBold"
                                    Foreground="{StaticResource AccentCyanBrush}"
                                    Margin="0,0,0,12" />
@@ -67,7 +67,7 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <TextBlock Text="{Binding}"
-                                               FontSize="20"
+                                               FontSize="19"
                                                Foreground="{StaticResource TextPrimaryBrush}"
                                                TextWrapping="Wrap"
                                                LineHeight="30"
@@ -78,32 +78,58 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Phần 3: Các nút hành động to rõ -->
+                <!-- Phần 3: Các nút hành động đối xứng rõ ràng -->
                 <WrapPanel HorizontalAlignment="Center">
-                    <Button Content="Thử lại ngay"
-                            Style="{StaticResource PrimaryCyanButtonStyle}"
+                    <Button Style="{StaticResource PrimaryCyanButtonStyle}"
                             Command="{Binding RetryErrorActionCommand}"
                             Visibility="{Binding ActiveError.CanRetry, Converter={StaticResource BoolToVis}}"
-                            MinHeight="64"
+                            MinHeight="62"
                             MinWidth="220"
-                            FontSize="22"
-                            Margin="0,0,24,12" />
+                            Margin="0,0,18,0">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Path Data="{StaticResource IconRefreshGeometry}"
+                                  Fill="#FFFFFF"
+                                  Stretch="Uniform"
+                                  Width="20"
+                                  Height="20"
+                                  Margin="0,0,10,0"
+                                  VerticalAlignment="Center" />
+                            <TextBlock Text="Thử lại ngay" FontSize="20" FontWeight="Bold" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
 
-                    <Button Content="Về Trang Chủ"
-                            Style="{StaticResource GlassActionButtonStyle}"
+                    <Button Style="{StaticResource GlassActionButtonStyle}"
                             Command="{Binding DismissErrorToHomeCommand}"
-                            MinHeight="64"
+                            MinHeight="62"
                             MinWidth="220"
-                            FontSize="22"
-                            Margin="0,0,24,12" />
+                            Margin="0,0,18,0">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Path Data="{StaticResource IconHomeGeometry}"
+                                  Fill="{StaticResource TextPrimaryBrush}"
+                                  Stretch="Uniform"
+                                  Width="20"
+                                  Height="20"
+                                  Margin="0,0,10,0"
+                                  VerticalAlignment="Center" />
+                            <TextBlock Text="Về Trang Chủ" FontSize="20" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
 
-                    <Button Content="Mở Phim Offline"
-                            Style="{StaticResource GlassActionButtonStyle}"
+                    <Button Style="{StaticResource GlassActionButtonStyle}"
                             Command="{Binding DismissErrorToOfflineMoviesCommand}"
-                            MinHeight="64"
-                            MinWidth="230"
-                            FontSize="22"
-                            Margin="0,0,0,12" />
+                            MinHeight="62"
+                            MinWidth="230">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Path Data="{StaticResource IconMovieGeometry}"
+                                  Fill="#FBBF24"
+                                  Stretch="Uniform"
+                                  Width="20"
+                                  Height="20"
+                                  Margin="0,0,10,0"
+                                  VerticalAlignment="Center" />
+                            <TextBlock Text="Mở Phim Offline" FontSize="20" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
                 </WrapPanel>
             </StackPanel>
         </Border>

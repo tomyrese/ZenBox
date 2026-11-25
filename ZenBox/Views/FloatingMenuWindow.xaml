@@ -13,7 +13,7 @@
         FontFamily="{StaticResource PrimaryFontFamily}">
 
     <Grid>
-        <!-- Trạng thái 1: Nút tròn nổi AssistiveTouch 64x64px có thể kéo thả mọi nơi -->
+        <!-- Trạng thái 1: Nút tròn nổi 64x64px thiết kế kính mờ hiện đại (kiểu Control Center tvOS) -->
         <Grid x:Name="AssistiveBallContainer"
               Width="88"
               Height="88"
@@ -23,153 +23,261 @@
                     Width="64"
                     Height="64"
                     CornerRadius="32"
-                    Background="#D90F172A"
-                    BorderBrush="{StaticResource AccentCyanBrush}"
-                    BorderThickness="3"
+                    BorderBrush="#7DD3FC"
+                    BorderThickness="2"
                     Cursor="Hand"
-                    ToolTip="Bấm để mở Bảng điều khiển nhanh hoặc giữ chuột để kéo đi"
+                    ToolTip="Bấm mở Điều khiển nhanh hoặc giữ chuột để kéo đi"
                     PreviewMouseLeftButtonDown="OnBallMouseLeftButtonDown"
                     PreviewMouseMove="OnBallMouseMove"
                     PreviewMouseLeftButtonUp="OnBallMouseLeftButtonUp">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#E61E293B" Offset="0" />
+                        <GradientStop Color="#EB0F172A" Offset="1" />
+                    </LinearGradientBrush>
+                </Border.Background>
                 <Border.Effect>
                     <DropShadowEffect BlurRadius="20" ShadowDepth="4" Opacity="0.55" Color="#000000" />
                 </Border.Effect>
-                <Border Width="34"
-                        Height="34"
-                        CornerRadius="17"
-                        Background="#5538BDF8"
-                        BorderBrush="#CCFFFFFF"
-                        BorderThickness="2"
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Center">
-                    <Ellipse Width="14"
-                             Height="14"
-                             Fill="#F8FAFC"
-                             HorizontalAlignment="Center"
-                             VerticalAlignment="Center" />
-                </Border>
+                <Path Data="{StaticResource IconGridCenterGeometry}"
+                      Fill="{StaticResource AccentCyanBrush}"
+                      Stretch="Uniform"
+                      Width="26"
+                      Height="26"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Center" />
             </Border>
         </Grid>
 
-        <!-- Trạng thái 2: Bảng điều khiển nổi kính mờ cỡ lớn -->
+        <!-- Trạng thái 2: Bảng Điều Khiển Nhanh căn đối xứng tuyệt đối -->
         <Grid x:Name="ExpandedMenuOverlay"
               Visibility="Collapsed"
-              Background="#A8060912"
+              Background="#CC04070E"
               MouseLeftButtonDown="OnBackdropMouseLeftButtonDown">
-            <Border MaxWidth="820"
-                    Padding="36"
+            <Border Width="780"
+                    Padding="38,34"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"
-                    Background="#F00F172A"
-                    BorderBrush="{StaticResource AccentCyanBrush}"
-                    BorderThickness="2"
-                    CornerRadius="24"
+                    Background="#F50D1424"
+                    BorderBrush="#44FFFFFF"
+                    BorderThickness="1.5"
+                    CornerRadius="28"
                     MouseLeftButtonDown="OnMenuCardMouseLeftButtonDown">
                 <Border.Effect>
-                    <DropShadowEffect BlurRadius="24" ShadowDepth="8" Opacity="0.4" Color="#000000" />
+                    <DropShadowEffect BlurRadius="36" ShadowDepth="12" Opacity="0.6" Color="#000000" />
                 </Border.Effect>
 
                 <StackPanel>
-                    <Grid Margin="0,0,0,22">
+                    <!-- Hàng tiêu đề + Nút đóng Vector -->
+                    <Grid Margin="0,0,0,24">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0"
-                                   Text="Điều khiển nhanh ZenBox"
-                                   FontSize="32"
-                                   FontWeight="Bold"
-                                   Foreground="{StaticResource TextPrimaryBrush}"
-                                   VerticalAlignment="Center" />
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock Text="Điều khiển nhanh ZenBox"
+                                       FontSize="30"
+                                       FontWeight="Bold"
+                                       Foreground="{StaticResource TextPrimaryBrush}" />
+                        </StackPanel>
                         <Button Grid.Column="1"
-                                Content="✕ Đóng"
                                 Style="{StaticResource GlassActionButtonStyle}"
                                 Click="OnCloseMenuClick"
                                 MinHeight="56"
-                                MinWidth="130" />
+                                MinWidth="130">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Path Data="{StaticResource IconCloseGeometry}"
+                                      Fill="{StaticResource TextPrimaryBrush}"
+                                      Stretch="Uniform"
+                                      Width="18"
+                                      Height="18"
+                                      Margin="0,0,8,0"
+                                      VerticalAlignment="Center" />
+                                <TextBlock Text="Đóng" FontSize="19" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
                     </Grid>
 
-                    <!-- Nút Trang Chủ cố định cỡ lớn -->
-                    <Button Content="⌂ Về Trang Chủ"
-                            Style="{StaticResource PrimaryCyanButtonStyle}"
+                    <!-- Nút Trang Chủ cố định nổi bật -->
+                    <Button Style="{StaticResource PrimaryCyanButtonStyle}"
                             Click="OnGoHomeClick"
-                            MinHeight="66"
-                            FontSize="24"
+                            MinHeight="64"
                             HorizontalAlignment="Stretch"
-                            Margin="0,0,0,22" />
+                            Margin="0,0,0,24">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Path Data="{StaticResource IconHomeGeometry}"
+                                  Fill="#FFFFFF"
+                                  Stretch="Uniform"
+                                  Width="22"
+                                  Height="22"
+                                  Margin="0,0,12,0"
+                                  VerticalAlignment="Center" />
+                            <TextBlock Text="Về Trang Chủ" FontSize="22" FontWeight="Bold" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
 
-                    <!-- Chuyển nhanh ứng dụng -->
-                    <TextBlock Text="Chuyển nhanh kênh giải trí:"
-                               FontSize="20"
+                    <!-- Lưới chuyển nhanh 6 kênh đối xứng 3 cột x 2 hàng thẳng tắp -->
+                    <TextBlock Text="Chuyển nhanh kênh giải trí"
+                               FontSize="18"
+                               FontWeight="Medium"
                                Foreground="{StaticResource TextSecondaryBrush}"
-                               Margin="0,0,0,14" />
+                               Margin="0,0,0,12" />
 
-                    <WrapPanel Margin="0,0,0,18">
-                        <Button Content="▶ YouTube"
-                                Style="{StaticResource GlassActionButtonStyle}"
+                    <UniformGrid Columns="3" Rows="2" Margin="-8,0,-8,20">
+                        <Button Style="{StaticResource GlassActionButtonStyle}"
                                 Click="OnOpenYouTubeClick"
-                                MinHeight="60"
-                                MinWidth="215"
-                                Margin="0,0,20,16" />
-                        <Button Content="f Facebook"
-                                Style="{StaticResource GlassActionButtonStyle}"
+                                MinHeight="62"
+                                Margin="8,0,8,14">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Path Data="{StaticResource IconYouTubeGeometry}"
+                                      Fill="#F87171"
+                                      Stretch="Uniform"
+                                      Width="22"
+                                      Height="22"
+                                      Margin="0,0,10,0"
+                                      VerticalAlignment="Center" />
+                                <TextBlock Text="YouTube" FontSize="20" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button Style="{StaticResource GlassActionButtonStyle}"
                                 Click="OnOpenFacebookClick"
-                                MinHeight="60"
-                                MinWidth="215"
-                                Margin="0,0,20,16" />
-                        <Button Content="♪ TikTok"
-                                Style="{StaticResource GlassActionButtonStyle}"
+                                MinHeight="62"
+                                Margin="8,0,8,14">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Path Data="{StaticResource IconFacebookGeometry}"
+                                      Fill="#60A5FA"
+                                      Stretch="Uniform"
+                                      Width="20"
+                                      Height="20"
+                                      Margin="0,0,10,0"
+                                      VerticalAlignment="Center" />
+                                <TextBlock Text="Facebook" FontSize="20" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button Style="{StaticResource GlassActionButtonStyle}"
                                 Click="OnOpenTikTokClick"
-                                MinHeight="60"
-                                MinWidth="215"
-                                Margin="0,0,0,16" />
-                        <Button Content="🎬 Phim Offline"
-                                Style="{StaticResource GlassActionButtonStyle}"
+                                MinHeight="62"
+                                Margin="8,0,8,14">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Path Data="{StaticResource IconTikTokGeometry}"
+                                      Fill="#2DD4BF"
+                                      Stretch="Uniform"
+                                      Width="20"
+                                      Height="20"
+                                      Margin="0,0,10,0"
+                                      VerticalAlignment="Center" />
+                                <TextBlock Text="TikTok" FontSize="20" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button Style="{StaticResource GlassActionButtonStyle}"
+                                Click="OnOpenWebBrowserClick"
+                                MinHeight="62"
+                                Margin="8,0,8,0">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Path Data="{StaticResource IconGlobeGeometry}"
+                                      Fill="#38BDF8"
+                                      Stretch="Uniform"
+                                      Width="20"
+                                      Height="20"
+                                      Margin="0,0,10,0"
+                                      VerticalAlignment="Center" />
+                                <TextBlock Text="Trình duyệt" FontSize="20" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button Style="{StaticResource GlassActionButtonStyle}"
                                 Click="OnOpenMoviesClick"
-                                MinHeight="60"
-                                MinWidth="215"
-                                Margin="0,0,20,8" />
-                        <Button Content="🎵 Nhạc Offline"
-                                Style="{StaticResource GlassActionButtonStyle}"
+                                MinHeight="62"
+                                Margin="8,0,8,0">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Path Data="{StaticResource IconMovieGeometry}"
+                                      Fill="#FBBF24"
+                                      Stretch="Uniform"
+                                      Width="20"
+                                      Height="20"
+                                      Margin="0,0,10,0"
+                                      VerticalAlignment="Center" />
+                                <TextBlock Text="Phim Offline" FontSize="20" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button Style="{StaticResource GlassActionButtonStyle}"
                                 Click="OnOpenMusicClick"
-                                MinHeight="60"
-                                MinWidth="215"
-                                Margin="0,0,20,8" />
-                    </WrapPanel>
+                                MinHeight="62"
+                                Margin="8,0,8,0">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Path Data="{StaticResource IconMusicGeometry}"
+                                      Fill="#C084FC"
+                                      Stretch="Uniform"
+                                      Width="20"
+                                      Height="20"
+                                      Margin="0,0,10,0"
+                                      VerticalAlignment="Center" />
+                                <TextBlock Text="Nhạc Offline" FontSize="20" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                    </UniformGrid>
 
-                    <!-- Cụm nút Tăng / Giảm âm lượng hệ thống Windows 11 -->
-                    <TextBlock Text="Âm lượng loa máy tính / TV:"
-                               FontSize="20"
+                    <!-- Cụm âm lượng hệ thống đối xứng 2 cột -->
+                    <TextBlock Text="Âm lượng loa máy tính / TV"
+                               FontSize="18"
+                               FontWeight="Medium"
                                Foreground="{StaticResource TextSecondaryBrush}"
-                               Margin="0,0,0,14" />
+                               Margin="0,0,0,12" />
 
-                    <Grid Margin="0,0,0,26">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="24" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <Button Grid.Column="0"
-                                Content="🔉 Giảm âm lượng (-)"
-                                Style="{StaticResource GlassActionButtonStyle}"
+                    <UniformGrid Columns="2" Margin="-8,0,-8,24">
+                        <Button Style="{StaticResource GlassActionButtonStyle}"
                                 Click="OnVolumeDownClick"
-                                MinHeight="64"
-                                FontSize="22" />
-                        <Button Grid.Column="2"
-                                Content="🔊 Tăng âm lượng (+)"
-                                Style="{StaticResource PrimaryCyanButtonStyle}"
+                                MinHeight="62"
+                                Margin="8,0,8,0">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Path Data="{StaticResource IconVolDownGeometry}"
+                                      Fill="{StaticResource TextPrimaryBrush}"
+                                      Stretch="Uniform"
+                                      Width="22"
+                                      Height="22"
+                                      Margin="0,0,10,0"
+                                      VerticalAlignment="Center" />
+                                <TextBlock Text="Giảm âm lượng (-)" FontSize="20" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button Style="{StaticResource PrimaryCyanButtonStyle}"
                                 Click="OnVolumeUpClick"
-                                MinHeight="64"
-                                FontSize="22" />
-                    </Grid>
+                                MinHeight="62"
+                                Margin="8,0,8,0">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Path Data="{StaticResource IconVolUpGeometry}"
+                                      Fill="#FFFFFF"
+                                      Stretch="Uniform"
+                                      Width="22"
+                                      Height="22"
+                                      Margin="0,0,10,0"
+                                      VerticalAlignment="Center" />
+                                <TextBlock Text="Tăng âm lượng (+)" FontSize="20" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                    </UniformGrid>
 
                     <!-- Nút Thoát ZenBox -->
-                    <Button Content="⏻ Thoát ZenBox"
-                            Style="{StaticResource CoralWarningButtonStyle}"
+                    <Button Style="{StaticResource CoralWarningButtonStyle}"
                             Click="OnExitAppClick"
                             MinHeight="60"
-                            FontSize="22"
-                            HorizontalAlignment="Stretch" />
+                            HorizontalAlignment="Stretch">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Path Data="{StaticResource IconPowerGeometry}"
+                                  Fill="{StaticResource WarningCoralBrush}"
+                                  Stretch="Uniform"
+                                  Width="20"
+                                  Height="20"
+                                  Margin="0,0,10,0"
+                                  VerticalAlignment="Center" />
+                            <TextBlock Text="Thoát ZenBox" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
                 </StackPanel>
             </Border>
         </Grid>

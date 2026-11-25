@@ -1,3 +1,4 @@
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
@@ -16,14 +17,9 @@ public partial class MediaPlayerView : UserControl
 
     private MediaPlayerViewModel? ViewModel => DataContext as MediaPlayerViewModel;
 
-    private void OnPlayerSurfaceMouseMove(object sender, MouseEventArgs e)
+    private void OnMediaPlayerUnloaded(object sender, RoutedEventArgs e)
     {
-        ViewModel?.NotifyUserActivity();
-    }
-
-    private void OnPlayerSurfaceMouseDown(object sender, MouseButtonEventArgs e)
-    {
-        ViewModel?.NotifyUserActivity();
+        VlcVideoSurface.MediaPlayer = null;
     }
 
     private void OnSliderDragStarted(object sender, DragStartedEventArgs e)

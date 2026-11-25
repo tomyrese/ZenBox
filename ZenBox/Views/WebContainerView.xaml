@@ -9,12 +9,12 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- Thanh công cụ điều hướng gọn rõ phía trên trang web -->
+        <!-- Thanh điều hướng trình duyệt gọn, thẳng hàng 56px -->
         <Border Grid.Row="0"
-                Background="#CC0F172A"
-                BorderBrush="{StaticResource GlassBorderBrush}"
+                Background="#CC0B0F19"
+                BorderBrush="#24FFFFFF"
                 BorderThickness="0,0,0,1"
-                Padding="28,12">
+                Padding="56,12">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -23,21 +23,40 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Content="← Trang trước"
-                            Style="{StaticResource GlassActionButtonStyle}"
+                    <Button Style="{StaticResource GlassActionButtonStyle}"
                             Command="{Binding GoBackCommand}"
                             MinHeight="56"
-                            MinWidth="170"
-                            Margin="0,0,16,0" />
-                    <Button Content="↻ Tải lại trang"
-                            Style="{StaticResource GlassActionButtonStyle}"
+                            Margin="0,0,14,0">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Path Data="{StaticResource IconBackGeometry}"
+                                  Fill="{StaticResource TextPrimaryBrush}"
+                                  Stretch="Uniform"
+                                  Width="18"
+                                  Height="18"
+                                  Margin="0,0,10,0"
+                                  VerticalAlignment="Center" />
+                            <TextBlock Text="Trang trước" FontSize="19" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button Style="{StaticResource GlassActionButtonStyle}"
                             Command="{Binding ReloadPageCommand}"
                             MinHeight="56"
-                            MinWidth="175"
-                            Margin="0,0,20,0" />
+                            Margin="0,0,20,0">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Path Data="{StaticResource IconRefreshGeometry}"
+                                  Fill="{StaticResource TextPrimaryBrush}"
+                                  Stretch="Uniform"
+                                  Width="18"
+                                  Height="18"
+                                  Margin="0,0,10,0"
+                                  VerticalAlignment="Center" />
+                            <TextBlock Text="Tải lại trang" FontSize="19" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
                 </StackPanel>
 
-                <!-- Thanh tìm kiếm hiển thị khi dùng Trình duyệt Web -->
+                <!-- Ô nhập địa chỉ khi mở Trình duyệt Web -->
                 <Grid Grid.Column="1"
                       VerticalAlignment="Center"
                       Margin="0,0,20,0"
@@ -47,9 +66,9 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <Border Grid.Column="0"
-                            Background="{StaticResource GlassSurfaceBrush}"
-                            BorderBrush="{StaticResource GlassBorderBrush}"
-                            BorderThickness="1"
+                            Background="#1AFFFFFF"
+                            BorderBrush="#36FFFFFF"
+                            BorderThickness="1.2"
                             CornerRadius="16"
                             Padding="18,10"
                             Margin="0,0,14,0">
@@ -70,7 +89,6 @@
                             MinWidth="130" />
                 </Grid>
 
-                <!-- Tiêu đề kênh và báo hiệu đang tải -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="Đang mở trang..."
                                FontSize="18"
@@ -78,16 +96,24 @@
                                VerticalAlignment="Center"
                                Margin="0,0,18,0"
                                Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}" />
-                    <Button Content="⌂ Về Trang Chủ"
-                            Style="{StaticResource PrimaryCyanButtonStyle}"
+                    <Button Style="{StaticResource PrimaryCyanButtonStyle}"
                             Command="{Binding GoHomeCommand}"
-                            MinHeight="56"
-                            MinWidth="190" />
+                            MinHeight="56">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Path Data="{StaticResource IconHomeGeometry}"
+                                  Fill="#FFFFFF"
+                                  Stretch="Uniform"
+                                  Width="18"
+                                  Height="18"
+                                  Margin="0,0,10,0"
+                                  VerticalAlignment="Center" />
+                            <TextBlock Text="Về Trang Chủ" FontSize="19" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
                 </StackPanel>
             </Grid>
         </Border>
 
-        <!-- Vùng chứa Pool các cửa sổ WebView2 giữ nguyên trạng thái -->
         <Grid x:Name="BrowserHostGrid" Grid.Row="1" Background="#0B0F19" />
     </Grid>
 </UserControl>

@@ -5,37 +5,47 @@
 
     <ScrollViewer VerticalScrollBarVisibility="Auto"
                   HorizontalScrollBarVisibility="Disabled"
-                  Padding="48,28,48,28">
-        <StackPanel MaxWidth="1060" HorizontalAlignment="Left">
+                  Padding="56,30,56,28">
+        <StackPanel MaxWidth="1120" HorizontalAlignment="Left">
             <!-- Tiêu đề màn hình -->
             <Grid Margin="0,0,0,28">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <StackPanel Grid.Column="0">
+                <StackPanel Grid.Column="0" Margin="0,0,24,0">
                     <TextBlock Text="Cài đặt hệ thống"
-                               FontSize="38"
+                               FontSize="36"
                                FontWeight="Bold"
                                Foreground="{StaticResource TextPrimaryBrush}"
                                Margin="0,0,0,6" />
-                    <TextBlock Text="Chọn nơi lưu trữ phim nhạc trong máy và thiết lập tự động mở khi bật máy tính"
-                               FontSize="20"
+                    <TextBlock Text="Chọn nơi lưu trữ phim nhạc trong máy và thiết lập tự động mở cùng Windows 11"
+                               FontSize="19"
                                Foreground="{StaticResource TextSecondaryBrush}" />
                 </StackPanel>
                 <Button Grid.Column="1"
-                        Content="⌂ Về Trang Chủ"
                         Style="{StaticResource PrimaryCyanButtonStyle}"
                         Command="{Binding GoHomeCommand}"
-                        MinHeight="60"
-                        VerticalAlignment="Center" />
+                        MinHeight="58"
+                        VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Path Data="{StaticResource IconHomeGeometry}"
+                              Fill="#FFFFFF"
+                              Stretch="Uniform"
+                              Width="20"
+                              Height="20"
+                              Margin="0,0,10,0"
+                              VerticalAlignment="Center" />
+                        <TextBlock Text="Về Trang Chủ" FontSize="19" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
             </Grid>
 
-            <!-- Thông báo xác nhận đã lưu -->
+            <!-- Thông báo xác nhận -->
             <Border Background="{StaticResource SuccessGreenSoftBrush}"
-                    BorderBrush="{StaticResource SuccessGreenBrush}"
-                    BorderThickness="2"
-                    CornerRadius="20"
+                    BorderBrush="#6634D399"
+                    BorderThickness="1.5"
+                    CornerRadius="18"
                     Padding="24,16"
                     Margin="0,0,0,24"
                     Visibility="{Binding HasStatusMessage, Converter={StaticResource BoolToVis}}">
@@ -46,68 +56,128 @@
             </Border>
 
             <!-- Mục 1: Thư mục Phim -->
-            <Border Style="{StaticResource GlassPanelBorderStyle}" Padding="32" Margin="0,0,0,24">
+            <Border Style="{StaticResource GlassPanelBorderStyle}" Padding="32,28" Margin="0,0,0,22">
                 <Grid>
                     <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0" Margin="0,0,24,0" VerticalAlignment="Center">
-                        <TextBlock Text="🎬 Thư mục chứa Phim của tôi"
-                                   FontSize="26"
+                    <Border Grid.Column="0"
+                            Width="60"
+                            Height="60"
+                            CornerRadius="18"
+                            Margin="0,0,22,0"
+                            VerticalAlignment="Center">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                <GradientStop Color="#F59E0B" Offset="0" />
+                                <GradientStop Color="#EA580C" Offset="1" />
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <Path Data="{StaticResource IconMovieGeometry}"
+                              Fill="#FFFFFF"
+                              Stretch="Uniform"
+                              Width="28"
+                              Height="28"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center" />
+                    </Border>
+                    <StackPanel Grid.Column="1" Margin="0,0,24,0" VerticalAlignment="Center">
+                        <TextBlock Text="Thư mục chứa Phim của tôi"
+                                   FontSize="24"
                                    FontWeight="SemiBold"
                                    Foreground="{StaticResource TextPrimaryBrush}"
-                                   Margin="0,0,0,10" />
+                                   Margin="0,0,0,6" />
                         <TextBlock Text="{Binding MoviesFolderPath}"
-                                   FontSize="20"
+                                   FontSize="19"
                                    Foreground="{StaticResource AccentCyanBrush}"
                                    TextWrapping="Wrap" />
                     </StackPanel>
-                    <Button Grid.Column="1"
-                            Content="Chọn thư mục Phim..."
+                    <Button Grid.Column="2"
                             Style="{StaticResource GlassActionButtonStyle}"
                             Command="{Binding ChooseMoviesFolderCommand}"
-                            MinHeight="62"
-                            MinWidth="260"
-                            FontSize="22"
-                            VerticalAlignment="Center" />
+                            MinHeight="58"
+                            MinWidth="250"
+                            VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Path Data="{StaticResource IconFolderGeometry}"
+                                  Fill="{StaticResource AccentCyanBrush}"
+                                  Stretch="Uniform"
+                                  Width="20"
+                                  Height="20"
+                                  Margin="0,0,10,0"
+                                  VerticalAlignment="Center" />
+                            <TextBlock Text="Chọn thư mục Phim" FontSize="19" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
                 </Grid>
             </Border>
 
             <!-- Mục 2: Thư mục Nhạc -->
-            <Border Style="{StaticResource GlassPanelBorderStyle}" Padding="32" Margin="0,0,0,24">
+            <Border Style="{StaticResource GlassPanelBorderStyle}" Padding="32,28" Margin="0,0,0,22">
                 <Grid>
                     <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0" Margin="0,0,24,0" VerticalAlignment="Center">
-                        <TextBlock Text="🎵 Thư mục chứa Nhạc của tôi"
-                                   FontSize="26"
+                    <Border Grid.Column="0"
+                            Width="60"
+                            Height="60"
+                            CornerRadius="18"
+                            Margin="0,0,22,0"
+                            VerticalAlignment="Center">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                <GradientStop Color="#A855F7" Offset="0" />
+                                <GradientStop Color="#EC4899" Offset="1" />
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <Path Data="{StaticResource IconMusicGeometry}"
+                              Fill="#FFFFFF"
+                              Stretch="Uniform"
+                              Width="28"
+                              Height="28"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center" />
+                    </Border>
+                    <StackPanel Grid.Column="1" Margin="0,0,24,0" VerticalAlignment="Center">
+                        <TextBlock Text="Thư mục chứa Nhạc của tôi"
+                                   FontSize="24"
                                    FontWeight="SemiBold"
                                    Foreground="{StaticResource TextPrimaryBrush}"
-                                   Margin="0,0,0,10" />
+                                   Margin="0,0,0,6" />
                         <TextBlock Text="{Binding MusicFolderPath}"
-                                   FontSize="20"
+                                   FontSize="19"
                                    Foreground="{StaticResource AccentCyanBrush}"
                                    TextWrapping="Wrap" />
                     </StackPanel>
-                    <Button Grid.Column="1"
-                            Content="Chọn thư mục Nhạc..."
+                    <Button Grid.Column="2"
                             Style="{StaticResource GlassActionButtonStyle}"
                             Command="{Binding ChooseMusicFolderCommand}"
-                            MinHeight="62"
-                            MinWidth="260"
-                            FontSize="22"
-                            VerticalAlignment="Center" />
+                            MinHeight="58"
+                            MinWidth="250"
+                            VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Path Data="{StaticResource IconFolderGeometry}"
+                                  Fill="{StaticResource AccentCyanBrush}"
+                                  Stretch="Uniform"
+                                  Width="20"
+                                  Height="20"
+                                  Margin="0,0,10,0"
+                                  VerticalAlignment="Center" />
+                            <TextBlock Text="Chọn thư mục Nhạc" FontSize="19" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
                 </Grid>
             </Border>
 
-            <!-- Mục 3: Tự khởi động cùng Windows 11 -->
-            <Border Style="{StaticResource GlassPanelBorderStyle}" Padding="32">
+            <!-- Mục 3: Khởi động cùng Windows 11 -->
+            <Border Style="{StaticResource GlassPanelBorderStyle}" Padding="32,28">
                 <StackPanel>
-                    <TextBlock Text="🚀 Mở tự động cùng máy tính"
-                               FontSize="26"
+                    <TextBlock Text="Khởi động tự động cùng máy tính"
+                               FontSize="24"
                                FontWeight="SemiBold"
                                Foreground="{StaticResource TextPrimaryBrush}"
                                Margin="0,0,0,16" />
