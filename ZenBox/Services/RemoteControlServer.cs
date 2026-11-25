@@ -14,6 +14,7 @@ public sealed class RemoteControlServer : IDisposable
 
     private readonly ErrorHandlingService _errorService;
     private readonly Action<RemoteCommandPayload> _commandDispatcher;
+    private readonly Func<RemoteStateDto>? _stateSnapshotProvider;
     private readonly List<IWebSocketConnection> _clients = new();
     private readonly object _clientsLock = new();
     private WebSocketServer? _server;
@@ -24,11 +25,13 @@ public sealed class RemoteControlServer : IDisposable
     public RemoteControlServer(
         int port,
         ErrorHandlingService errorService,
-        Action<RemoteCommandPayload> commandDispatcher)
+        Action<RemoteCommandPayload> commandDispatcher,
+        Func<RemoteStateDto>? stateSnapshotProvider = null)
     {
         Port = port;
         _errorService = errorService;
         _commandDispatcher = commandDispatcher;
+        _stateSnapshotProvider = stateSnapshotProvider;
     }
 
     public void Start()
@@ -50,6 +53,7 @@ public sealed class RemoteControlServer : IDisposable
                     {
                         _clients.Add(socket);
                     }
+                    SendCurrentStateToClient(socket);
                 };
 
                 socket.OnClose = () =>
@@ -72,6 +76,78 @@ public sealed class RemoteControlServer : IDisposable
         }
     }
 
+    public void BroadcastState()
+    {
+        if (_stateSnapshotProvider is null || !IsRunning)
+        {
+            return;
+        }
+
+        string json;
+        try
+        {
+            var state = _stateSnapshotProvider();
+            json = JsonSerializer.Serialize(state, JsonOptions);
+        }
+        catch
+        {
+            return;
+        }
+
+        List<IWebSocketConnection> snapshot;
+        lock (_clientsLock)
+        {
+            snapshot = _clients.ToList();
+        }
+
+        foreach (var client in snapshot)
+        {
+            try
+            {
+                if (client.IsAvailable)
+                {
+                    _ = client.Send(json);
+                }
+            }
+            catch
+            {
+            }
+        }
+    }
+
+    private void SendCurrentStateToClient(IWebSocketConnection socket)
+    {
+        if (_stateSnapshotProvider is null)
+        {
+            return;
+        }
+
+        try
+        {
+            if (Application.Current?.Dispatcher is { } dispatcher)
+            {
+                _ = dispatcher.InvokeAsync(() =>
+                {
+                    var state = _stateSnapshotProvider();
+                    var json = JsonSerializer.Serialize(state, JsonOptions);
+                    if (socket.IsAvailable)
+                    {
+                        _ = socket.Send(json);
+                    }
+                });
+            }
+            else
+            {
+                var state = _stateSnapshotProvider();
+                var json = JsonSerializer.Serialize(state, JsonOptions);
+                _ = socket.Send(json);
+            }
+        }
+        catch
+        {
+        }
+    }
+
     private void HandleIncomingMessage(IWebSocketConnection socket, string rawJson)
     {
         try
@@ -82,16 +158,26 @@ public sealed class RemoteControlServer : IDisposable
                 return;
             }
 
+            if (string.Equals(payload.Action, "PING", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(payload.Action, "GET_STATE", StringComparison.OrdinalIgnoreCase))
+            {
+                SendCurrentStateToClient(socket);
+                return;
+            }
+
             if (Application.Current?.Dispatcher is { } dispatcher)
             {
-                _ = dispatcher.InvokeAsync(() => _commandDispatcher(payload));
+                _ = dispatcher.InvokeAsync(() =>
+                {
+                    _commandDispatcher(payload);
+                    BroadcastState();
+                });
             }
             else
             {
                 _commandDispatcher(payload);
+                BroadcastState();
             }
-
-            _ = socket.Send("{\"status\":\"ok\"}");
         }
         catch (Exception ex)
         {
@@ -112,7 +198,6 @@ public sealed class RemoteControlServer : IDisposable
                 }
                 catch
                 {
-                    // Bỏ qua lỗi khi đóng socket
                 }
             }
             _clients.Clear();
@@ -124,7 +209,6 @@ public sealed class RemoteControlServer : IDisposable
         }
         catch
         {
-            // Bỏ qua lỗi khi giải phóng server
         }
     }
 }

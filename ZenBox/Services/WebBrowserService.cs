@@ -849,6 +849,164 @@ public sealed class WebBrowserService : IDisposable
         active.CoreWebView2.Navigate(finalUrl);
     }
 
+    // Nhập chữ tìm kiếm thời gian thực từ điện thoại vào ô tìm kiếm của YouTube / Spotify / Netflix / TikTok / Web hiện tại!
+    public async Task InjectRealtimeSearchTextAsync(string text, bool submitSearch)
+    {
+        var activePair = _browserPool.FirstOrDefault(kv => kv.Value.Visibility == Visibility.Visible);
+        if (activePair.Value?.CoreWebView2 is not { } core)
+        {
+            return;
+        }
+
+        var section = activePair.Key;
+        var escapedJsonText = System.Text.Json.JsonSerializer.Serialize(text ?? string.Empty);
+
+        var injectJs = $$"""
+            (() => {
+                const query = {{escapedJsonText}};
+                const submit = {{(submitSearch ? "true" : "false")}};
+
+                const findSearchInput = () => {
+                    const active = document.activeElement;
+                    if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA') && active.type !== 'hidden' && active.type !== 'checkbox') {
+                        return active;
+                    }
+                    const selectors = [
+                        'input#search',
+                        'input[name="search_query"]',
+                        'input[data-testid="search-input"]',
+                        'input[data-e2e="search-user-input"]',
+                        'input[name="q"]',
+                        'input[type="search"]',
+                        'input[placeholder*="Tìm" i]',
+                        'input[placeholder*="Search" i]',
+                        'input[aria-label*="Tìm" i]',
+                        'input[aria-label*="Search" i]',
+                        'input[type="text"]'
+                    ];
+                    for (const sel of selectors) {
+                        const el = document.querySelector(sel);
+                        if (el && el.offsetParent !== null) return el;
+                    }
+                    // Trên Netflix / Spotify nếu nút kính lúp chưa mở ô input, bấm mở nút tìm kiếm trước
+                    const searchToggle = document.querySelector('button[data-uia="search-box-launcher"], a[href="/search"], button[aria-label*="Search" i]');
+                    if (searchToggle) {
+                        searchToggle.click();
+                    }
+                    return null;
+                };
+
+                const input = findSearchInput();
+                if (!input) return 'NO_INPUT';
+
+                input.focus();
+                const proto = input.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype;
+                const nativeSetter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
+                if (nativeSetter) {
+                    nativeSetter.call(input, query);
+                } else {
+                    input.value = query;
+                }
+
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+
+                if (submit) {
+                    const form = input.closest('form');
+                    const ytBtn = document.querySelector('button#search-icon-legacy, button.ytSearchboxComponentSearchButton');
+                    if (ytBtn) {
+                        ytBtn.click();
+                        return 'SUBMITTED_BTN';
+                    }
+                    if (form) {
+                        form.requestSubmit ? form.requestSubmit() : form.submit();
+                        return 'SUBMITTED_FORM';
+                    }
+                    return 'NEED_ENTER_KEY';
+                }
+                return 'TYPED';
+            })()
+            """;
+
+        try
+        {
+            var raw = await core.ExecuteScriptAsync(injectJs);
+            var status = raw?.Trim('"');
+
+            if (submitSearch && !string.IsNullOrWhiteSpace(text))
+            {
+                if (status == "NO_INPUT")
+                {
+                    // Điều hướng thẳng đến trang kết quả tìm kiếm của ứng dụng tương ứng nếu trang hiện tại không có sẵn ô input
+                    var encoded = Uri.EscapeDataString(text.Trim());
+                    var searchUrl = section switch
+                    {
+                        AppSection.YouTube => $"https://www.youtube.com/results?search_query={encoded}",
+                        AppSection.Netflix => $"https://www.netflix.com/search?q={encoded}",
+                        AppSection.Spotify => $"https://open.spotify.com/search/{encoded}",
+                        AppSection.TikTok => $"https://www.tiktok.com/search?q={encoded}",
+                        AppSection.SoundCloud => $"https://soundcloud.com/search?q={encoded}",
+                        AppSection.ZingMp3 => $"https://zingmp3.vn/tim-kiem/tat-ca?q={encoded}",
+                        _ => $"https://www.google.com/search?q={encoded}"
+                    };
+                    core.Navigate(searchUrl);
+                }
+                else if (status == "NEED_ENTER_KEY")
+                {
+                    await SendCdpKeyAsync(core, "Enter", "Enter", 13);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorService.LogError(ErrorCategory.WebLoadFailed, "InjectRealtimeSearchTextAsync", ex);
+        }
+    }
+
+    public async Task SendNavigationKeyToActiveTabAsync(string direction)
+    {
+        var active = _browserPool.Values.FirstOrDefault(v => v.Visibility == Visibility.Visible);
+        if (active?.CoreWebView2 is not { } core)
+        {
+            return;
+        }
+
+        active.Focus();
+
+        var (key, code, vk) = direction switch
+        {
+            "UP" => ("ArrowUp", "ArrowUp", 38),
+            "DOWN" => ("ArrowDown", "ArrowDown", 40),
+            "LEFT" => ("ArrowLeft", "ArrowLeft", 37),
+            "RIGHT" => ("ArrowRight", "ArrowRight", 39),
+            "OK" => ("Enter", "Enter", 13),
+            "PLAY_PAUSE" => (" ", "Space", 32),
+            _ => ("", "", 0)
+        };
+
+        if (vk != 0)
+        {
+            await SendCdpKeyAsync(core, key, code, vk);
+        }
+    }
+
+    private static async Task SendCdpKeyAsync(CoreWebView2 core, string key, string code, int vk)
+    {
+        try
+        {
+            var escapedKey = System.Text.Json.JsonSerializer.Serialize(key);
+            await core.CallDevToolsProtocolMethodAsync(
+                "Input.dispatchKeyEvent",
+                $$"""{"type":"rawKeyDown","windowsVirtualKeyCode":{{vk}},"nativeVirtualKeyCode":{{vk}},"key":{{escapedKey}},"code":"{{code}}"}""");
+            await core.CallDevToolsProtocolMethodAsync(
+                "Input.dispatchKeyEvent",
+                $$"""{"type":"keyUp","windowsVirtualKeyCode":{{vk}},"nativeVirtualKeyCode":{{vk}},"key":{{escapedKey}},"code":"{{code}}"}""");
+        }
+        catch
+        {
+        }
+    }
+
     public void Dispose()
     {
         if (_disposed)

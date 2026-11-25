@@ -18,6 +18,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private readonly ConfigService _configService;
     private readonly NetworkMonitorService _networkService;
     private readonly SystemAudioService _audioService;
+    private readonly SystemInputService _inputService = new();
     private readonly WebBrowserService _webBrowserService;
     private readonly MediaLibraryService _mediaLibraryService;
     private readonly RemoteControlServer _remoteServer;
@@ -191,7 +192,33 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _remoteServer = new RemoteControlServer(
             _configService.Current.RemotePort,
             _errorService,
-            HandleRemoteCommand);
+            HandleRemoteCommand,
+            BuildRemoteStateSnapshot);
+    }
+
+    public RemoteStateDto BuildRemoteStateSnapshot()
+    {
+        var title = ActiveSection switch
+        {
+            AppSection.Home => "Trang Chủ ZenBox",
+            AppSection.OfflineMovies => "Kho Phim Offline",
+            AppSection.OfflineMusic => "Kho Nhạc Offline",
+            AppSection.MediaPlayer => string.IsNullOrWhiteSpace(MediaPlayerVm.MediaTitle) ? "Đang phát Media" : MediaPlayerVm.MediaTitle,
+            AppSection.SystemConfig => "Cài đặt hệ thống",
+            _ => string.IsNullOrWhiteSpace(WebVm.ChannelTitle) ? ActiveSection.ToString() : WebVm.ChannelTitle
+        };
+
+        return new RemoteStateDto
+        {
+            ActiveSection = ActiveSection.ToString(),
+            ActiveTitle = title,
+            Volume = QuickVolumePercent,
+            IsMuted = IsSystemMuted,
+            AudioPreset = _configService.Current.SoundPreset.ToString(),
+            AudioPresetLabel = QuickAudioPresetLabel,
+            EyeCare = _configService.Current.EyeCare.ToString(),
+            SleepTimer = SleepTimerBadgeText
+        };
     }
 
     private static SolidColorBrush CreateFrozenBrush(byte a, byte r, byte g, byte b)
@@ -629,21 +656,298 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             case "HOME":
                 NavigateHome();
                 break;
+            case "BACK":
+                AppGoBack();
+                break;
+            case "RELOAD":
+                AppReload();
+                break;
             case "VOL_UP":
                 VolumeUp();
                 break;
             case "VOL_DOWN":
                 VolumeDown();
                 break;
+            case "SET_VOLUME":
+                if (payload.Value.HasValue)
+                {
+                    QuickVolumePercent = Math.Clamp(payload.Value.Value, 0, 100);
+                }
+                break;
+            case "MUTE_TOGGLE":
+                ToggleSystemMute();
+                break;
             case "PLAY_PAUSE":
                 if (ActiveSection == AppSection.MediaPlayer)
                 {
                     MediaPlayerVm.TogglePlayPause();
                 }
+                else if (IsOnlineAppActive)
+                {
+                    _ = _webBrowserService.SendNavigationKeyToActiveTabAsync("PLAY_PAUSE");
+                }
+                break;
+            case "SEEK_BACK":
+                if (ActiveSection == AppSection.MediaPlayer)
+                {
+                    MediaPlayerVm.Rewind15Seconds();
+                }
+                else if (IsOnlineAppActive)
+                {
+                    _ = _webBrowserService.SendNavigationKeyToActiveTabAsync("LEFT");
+                }
+                break;
+            case "SEEK_FORWARD":
+                if (ActiveSection == AppSection.MediaPlayer)
+                {
+                    MediaPlayerVm.Forward15Seconds();
+                }
+                else if (IsOnlineAppActive)
+                {
+                    _ = _webBrowserService.SendNavigationKeyToActiveTabAsync("RIGHT");
+                }
+                break;
+            case "DPAD_UP":
+            case "DPAD_DOWN":
+            case "DPAD_LEFT":
+            case "DPAD_RIGHT":
+            case "DPAD_OK":
+                HandleRemoteDpad(action["DPAD_".Length..]);
+                break;
+            case "TOUCHPAD_MOVE":
+                if (payload.Dx.HasValue || payload.Dy.HasValue)
+                {
+                    _inputService.MoveCursorRelative(payload.Dx ?? 0, payload.Dy ?? 0);
+                }
+                break;
+            case "TOUCHPAD_CLICK":
+                _inputService.LeftClickAtCursor();
+                break;
+            case "TOUCHPAD_SCROLL":
+                if (payload.Dy.HasValue)
+                {
+                    _inputService.ScrollVertical(payload.Dy.Value);
+                }
+                break;
+            case "SEARCH_REALTIME":
+                HandleRealtimeSearch(payload.Text ?? string.Empty, payload.Target, submit: false);
+                break;
+            case "SEARCH_SUBMIT":
+                HandleRealtimeSearch(payload.Text ?? string.Empty, payload.Target, submit: true);
+                break;
+            case "SET_AUDIO_PRESET":
+                if (Enum.TryParse<AudioPreset>(payload.Target, ignoreCase: true, out var preset))
+                {
+                    _configService.Current.SoundPreset = preset;
+                    _configService.Save();
+                    ApplyGlobalAudioPreset(preset);
+                }
+                else
+                {
+                    CycleQuickAudioPreset();
+                }
+                break;
+            case "SET_EYECARE":
+                if (Enum.TryParse<EyeCareMode>(payload.Target, ignoreCase: true, out var eyeMode))
+                {
+                    _configService.Current.EyeCare = eyeMode;
+                    _configService.Save();
+                    ApplyEyeCareMode(eyeMode);
+                }
+                else
+                {
+                    CycleQuickEyeCare();
+                }
+                break;
+            case "SET_SLEEP_TIMER":
+                if (payload.Value.HasValue)
+                {
+                    SetSleepTimerMinutes(payload.Value.Value);
+                }
+                else
+                {
+                    CycleQuickSleepTimer();
+                }
                 break;
             case "OPEN_APP":
                 HandleRemoteOpenApp(payload.Target);
                 break;
+            case "EXIT_APP":
+                ExitApplication();
+                break;
+        }
+    }
+
+    private void HandleRemoteDpad(string dir)
+    {
+        if (ActiveSection == AppSection.MediaPlayer)
+        {
+            switch (dir)
+            {
+                case "LEFT":
+                    MediaPlayerVm.Rewind15Seconds();
+                    break;
+                case "RIGHT":
+                    MediaPlayerVm.Forward15Seconds();
+                    break;
+                case "OK":
+                    MediaPlayerVm.TogglePlayPause();
+                    break;
+            }
+            return;
+        }
+
+        if (IsOnlineAppActive)
+        {
+            _ = _webBrowserService.SendNavigationKeyToActiveTabAsync(dir);
+            return;
+        }
+
+        // Điều hướng trực tiếp các ô kính trên Trang Chủ / Kho Phim / Cài đặt bằng phím 5 chiều từ điện thoại
+        if (Application.Current?.MainWindow is not { } mainWin)
+        {
+            return;
+        }
+
+        if (dir == "OK")
+        {
+            if (System.Windows.Input.Keyboard.FocusedElement is System.Windows.Controls.Primitives.ButtonBase focusedBtn)
+            {
+                if (focusedBtn.Command?.CanExecute(focusedBtn.CommandParameter) == true)
+                {
+                    focusedBtn.Command.Execute(focusedBtn.CommandParameter);
+                }
+                else
+                {
+                    focusedBtn.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+                }
+            }
+            return;
+        }
+
+        var focusDir = dir switch
+        {
+            "UP" => System.Windows.Input.FocusNavigationDirection.Up,
+            "DOWN" => System.Windows.Input.FocusNavigationDirection.Down,
+            "LEFT" => System.Windows.Input.FocusNavigationDirection.Left,
+            "RIGHT" => System.Windows.Input.FocusNavigationDirection.Right,
+            _ => (System.Windows.Input.FocusNavigationDirection?)null
+        };
+
+        if (focusDir.HasValue)
+        {
+            var current = System.Windows.Input.Keyboard.FocusedElement as UIElement ?? mainWin;
+            current.MoveFocus(new System.Windows.Input.TraversalRequest(focusDir.Value));
+        }
+    }
+
+    private void HandleRealtimeSearch(string query, string? targetScope, bool submit)
+    {
+        var scope = targetScope?.Trim().ToUpperInvariant();
+
+        // Nếu người dùng chọn đích tìm kiếm cụ thể từ điện thoại (VD: YOUTUBE, SPOTIFY, NETFLIX, TIKTOK, GOOGLE, OFFLINE)
+        if (!string.IsNullOrWhiteSpace(scope) && scope != "CURRENT")
+        {
+            if (scope == "OFFLINE")
+            {
+                if (ActiveSection is not (AppSection.OfflineMovies or AppSection.OfflineMusic))
+                {
+                    OpenOfflineMovies();
+                }
+                MediaLibraryVm.SearchKeyword = query;
+                return;
+            }
+
+            if (submit && !string.IsNullOrWhiteSpace(query))
+            {
+                var enc = Uri.EscapeDataString(query.Trim());
+                switch (scope)
+                {
+                    case "YOUTUBE":
+                        OpenOnlineChannel(AppSection.YouTube, $"https://www.youtube.com/results?search_query={enc}", "YouTube");
+                        return;
+                    case "NETFLIX":
+                        OpenOnlineChannel(AppSection.Netflix, $"https://www.netflix.com/search?q={enc}", "Netflix");
+                        return;
+                    case "SPOTIFY":
+                        OpenOnlineChannel(AppSection.Spotify, $"https://open.spotify.com/search/{enc}", "Spotify");
+                        return;
+                    case "TIKTOK":
+                        OpenOnlineChannel(AppSection.TikTok, $"https://www.tiktok.com/search?q={enc}", "TikTok");
+                        return;
+                    case "GOOGLE":
+                        OpenOnlineChannel(AppSection.WebBrowser, $"https://www.google.com/search?q={enc}", "Tìm kiếm Google");
+                        return;
+                }
+            }
+
+            // Khi đang gõ realtime (submit = false) vào một ứng dụng đích cụ thể mà TV chưa mở ứng dụng đó -> tự chuyển sang ứng dụng đích để gõ trực tiếp!
+            if (!submit && !string.IsNullOrWhiteSpace(query))
+            {
+                (AppSection targetSec, Action? opener) = scope switch
+                {
+                    "YOUTUBE" => (AppSection.YouTube, (Action)OpenYouTube),
+                    "NETFLIX" => (AppSection.Netflix, OpenNetflix),
+                    "SPOTIFY" => (AppSection.Spotify, OpenSpotify),
+                    "TIKTOK" => (AppSection.TikTok, OpenTikTok),
+                    "GOOGLE" => (AppSection.WebBrowser, OpenWebBrowser),
+                    _ => (ActiveSection, null)
+                };
+
+                if (opener is not null && ActiveSection != targetSec)
+                {
+                    opener();
+                    _ = Task.Run(async () =>
+                    {
+                        await Task.Delay(650);
+                        Application.Current?.Dispatcher?.Invoke(() =>
+                        {
+                            _ = _webBrowserService.InjectRealtimeSearchTextAsync(query, false);
+                        });
+                    });
+                    return;
+                }
+            }
+        }
+
+        // Trường hợp đang ở Kho Phim / Nhạc Offline -> lọc realtime dưới 1ms ngay trên màn hình TV!
+        if (ActiveSection is AppSection.OfflineMovies or AppSection.OfflineMusic)
+        {
+            MediaLibraryVm.SearchKeyword = query;
+            return;
+        }
+
+        // Trường hợp đang mở ứng dụng trực tuyến (YouTube, Spotify, Netflix, TikTok, Web...) -> gõ chữ trực tiếp realtime vào ô tìm kiếm của trang!
+        if (IsOnlineAppActive)
+        {
+            if (ActiveSection == AppSection.WebBrowser)
+            {
+                WebVm.AddressText = query;
+            }
+            _ = _webBrowserService.InjectRealtimeSearchTextAsync(query, submit);
+            return;
+        }
+
+        // Trường hợp đang đứng ở Trang Chủ mà gõ tìm kiếm trên điện thoại -> mở ngay YouTube để gõ trực tiếp!
+        if (!string.IsNullOrWhiteSpace(query))
+        {
+            if (submit)
+            {
+                var enc = Uri.EscapeDataString(query.Trim());
+                OpenOnlineChannel(AppSection.YouTube, $"https://www.youtube.com/results?search_query={enc}", "YouTube");
+            }
+            else
+            {
+                OpenYouTube();
+                _ = Task.Run(async () =>
+                {
+                    await Task.Delay(700);
+                    Application.Current?.Dispatcher?.Invoke(() =>
+                    {
+                        _ = _webBrowserService.InjectRealtimeSearchTextAsync(query, false);
+                    });
+                });
+            }
         }
     }
 

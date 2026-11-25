@@ -32,3 +32,14 @@ publish/
 config.json
 logs/
 *.tmp
+
+# ZenBoxRemote (React Native / Expo)
+ZenBoxRemote/node_modules/
+ZenBoxRemote/.expo/
+ZenBoxRemote/dist/
+ZenBoxRemote/web-build/
+ZenBoxRemote/*.jks
+ZenBoxRemote/*.p8
+ZenBoxRemote/*.p12
+ZenBoxRemote/*.key
+ZenBoxRemote/*.mobileprovision

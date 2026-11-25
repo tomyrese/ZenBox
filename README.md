@@ -9,7 +9,8 @@
 [![Framework](https://img.shields.io/badge/.NET-8.0%20WPF-512BD4?style=for-the-badge&logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![Architecture](https://img.shields.io/badge/Architecture-MVVM%20Clean-38BDF8?style=for-the-badge)](./ZenBox-Skills/skills/03-core-architecture.md)
 [![AdBlock](https://img.shields.io/badge/Ad--Shield-uBlock%20Origin%20%2B%20Network%20Filter-E50914?style=for-the-badge)](./ZenBox/Services/WebBrowserService.cs)
-[![Tests](https://img.shields.io/badge/Tests-19%2F19%20Passing-34D399?style=for-the-badge)](#kiểm-thử-tự-động--đảm-bảo-chất-lượng)
+[![Mobile](https://img.shields.io/badge/Mobile%20Remote-React%20Native%20(Expo)-61DAFB?style=for-the-badge&logo=react&logoColor=black)](./ZenBoxRemote)
+[![Tests](https://img.shields.io/badge/Tests-22%2F22%20Passing-34D399?style=for-the-badge)](#kiểm-thử-tự-động--đảm-bảo-chất-lượng)
 
 </div>
 
@@ -109,8 +110,32 @@ ZenBox/
 │   ├── Themes/GlassTheme.xaml             # Hệ thống tài nguyên Crystal Liquid Glass & Vector SVG
 │   ├── ViewModels/                        # Tầng xử lý trạng thái MVVM
 │   └── Views/                             # Các màn hình chính & cụm cửa sổ nổi trợ năng
+├── ZenBoxRemote/                          # Ứng dụng điều khiển từ xa trên điện thoại (React Native / Expo TS)
+│   ├── App.tsx                            # Khung giao diện điều khiển cầm tay Crystal Liquid Glass
+│   └── src/                               # Tìm kiếm Realtime, D-Pad 5 chiều, Bàn rê AirMouse & Đồng bộ TV
 └── ZenBox.Tests/                          # Dự án kiểm thử tự động xUnit (.NET 8.0-windows)
 ```
+
+---
+
+## Ứng dụng Điều khiển trên Điện thoại (`ZenBoxRemote` — React Native)
+
+Thư mục [`ZenBoxRemote/`](./ZenBoxRemote) cung cấp ứng dụng điều khiển từ xa trên **iOS & Android** viết bằng **React Native (Expo + TypeScript)** mang ngôn ngữ thiết kế **Crystal Liquid Glass** đồng bộ với TV:
+
+- **Tìm kiếm Gõ chữ Thời gian thực (*Realtime Search*):** Khi bạn gõ từng chữ trên bàn phím điện thoại, chữ được tiêm trực tiếp ngay lập tức (`~70ms`) vào ô tìm kiếm của **YouTube**, **Spotify**, **Netflix**, **TikTok**, **Google** hoặc lọc tức thì trong **Kho Phim Offline** trên TV.
+- **Cụm Điều hướng 5 chiều D-Pad & Phản hồi Xúc giác (*Haptics*):** Đầy đủ phím `▲ ▼ ◀ ▶ OK`, `Trở về`, `Trang Chủ`, `Tải lại`, tua nhanh `-15s / +15s`, `Phát / Tạm dừng` và thanh âm lượng tổng đồng bộ hai chiều với Windows 11.
+- **Bàn rê Chuột ảo (*AirMouse Touchpad*):** Vuốt 1 ngón trên điện thoại để di chuyển mượt mà con trỏ chuột trên TV, chạm nhẹ để click chuột trái và dải cuộn dọc chuyên dụng để lướt TikTok / Facebook / YouTube.
+- **Tự động Dò tìm TV trong mạng Wi-Fi:** Tự động quét cổng `8989` trong mạng nội bộ để tìm máy tính chạy ZenBox chỉ với 1 chạm, kèm mở nhanh toàn bộ 16 kênh giải trí và chỉnh trực tiếp 6 chế độ EQ / Bảo vệ mắt / Hẹn giờ tự nghỉ.
+
+### Khởi chạy nhanh trên điện thoại (iOS / Android)
+
+```powershell
+cd ZenBoxRemote
+npm install
+npx expo start
+```
+
+Mở ứng dụng **Expo Go** trên điện thoại (cùng mạng Wi-Fi với máy tính chạy `ZenBox`), quét mã QR hiện trên màn hình terminal để sử dụng ngay lập tức.
 
 ---
 
@@ -125,15 +150,21 @@ ZenBox/
 
 ---
 
-## Giao thức Điều khiển Từ xa qua Điện thoại (`WebSocket`)
+## Giao thức Điều khiển Hai Chiều (`WebSocket :8989`)
 
-Khi khởi chạy, **ZenBox** tự động mở máy chủ điều khiển nội bộ tại `ws://<IP-Máy-Tính>:8989` (xem địa chỉ IP cụ thể tại mục **Cài đặt → Thư viện & Hệ thống**). Các ứng dụng di động trong cùng mạng Wi-Fi có thể gửi gói tin JSON theo định dạng:
+Khi khởi chạy, **ZenBox** tự động mở máy chủ điều khiển hai chiều tại `ws://<IP-Máy-Tính>:8989` (xem địa chỉ IP cụ thể tại mục **Cài đặt → Thư viện & Hệ thống**). Máy chủ tự động phát bản tin trạng thái `STATE` thời gian thực và hỗ trợ đầy đủ tập lệnh JSON:
 
 ```json
-{ "action": "HOME" }
-{ "action": "VOL_UP" }
-{ "action": "VOL_DOWN" }
-{ "action": "PLAY_PAUSE" }
+{ "action": "SEARCH_REALTIME", "target": "CURRENT | YOUTUBE | SPOTIFY | NETFLIX | OFFLINE", "text": "nhạc trịnh" }
+{ "action": "SEARCH_SUBMIT", "target": "YOUTUBE", "text": "nhạc trịnh công sơn" }
+{ "action": "DPAD_UP | DPAD_DOWN | DPAD_LEFT | DPAD_RIGHT | DPAD_OK" }
+{ "action": "TOUCHPAD_MOVE", "dx": 12.5, "dy": -6.0 }
+{ "action": "TOUCHPAD_CLICK" }
+{ "action": "TOUCHPAD_SCROLL", "dy": -40 }
+{ "action": "SET_VOLUME", "value": 70 }
+{ "action": "SET_AUDIO_PRESET", "target": "Balanced | CinemaSurround | ClearVoice | WarmBolero | BassBoost | NightSoft" }
+{ "action": "SET_EYECARE", "target": "Off | WarmSoft | DeepNight" }
+{ "action": "SET_SLEEP_TIMER", "value": 30 }
 { "action": "OPEN_APP", "target": "YOUTUBE | NETFLIX | SPOTIFY | TIKTOK | FPTPLAY | VTVGO | MOVIES | MUSIC" }
 ```
 
@@ -174,10 +205,11 @@ Sau khi xuất bản hoàn tất, khởi chạy trực tiếp tệp `./publish/Z
 
 ## Kiểm thử Tự động & Đảm bảo Chất lượng
 
-Dự án duy trì bộ **19 bài kiểm thử tự động (xUnit)** chạy nghiệm thu nghiêm ngặt:
+Dự án duy trì bộ **22 bài kiểm thử tự động (xUnit)** chạy nghiệm thu nghiêm ngặt:
 - **`UiComplianceTests`**: Quét tự động toàn bộ mã nguồn `.xaml` bằng cả Regex lẫn XML Parser, đảm bảo không tồn tại bất kỳ cỡ chữ nào nhỏ hơn `16px` và không rò rỉ thuật ngữ kỹ thuật tiếng Anh lên giao diện người dùng.
-- **`AssetVerificationTests`**: Xác minh tính toàn vẹn của `uBlock Origin (manifest.json)` ở cả thư mục nguồn lẫn bản đóng gói, cùng độ chính xác của bộ lọc chặn quảng cáo tầng mạng.
+- **`AssetVerificationTests`**: Xác minh tính toàn vẹn của `uBlock Origin (manifest.json)`, biểu tượng đa phân giải `zenbox.ico` và độ chính xác của bộ lọc chặn quảng cáo tầng mạng.
 - **`BrandLogoFactoryTests`**: Kiểm tra toàn bộ 19 biểu tượng Vector đa lớp ở trạng thái `Frozen` tối ưu GPU, bộ 6 cấu hình âm thanh 10 dải tần và đồng bộ trạng thái các nút trong Trung tâm Cài đặt.
+- **`RemoteProtocolTests`**: Kiểm chứng giải mã gói tin điều khiển từ xa (`SEARCH_REALTIME`, `TOUCHPAD_MOVE`, `SET_AUDIO_PRESET`, `SET_EYECARE`, `SET_SLEEP_TIMER`) và bản chụp đồng bộ trạng thái `RemoteStateDto`.
 - **`ErrorHandlingServiceTests` & `MediaLibraryServiceTests`**: Đảm bảo ánh xạ chuẩn xác 4 nhóm thông báo tiếng Việt thân thiện, ghi nhật ký `logs/error_YYYYMMDD.txt` và lọc đúng định dạng đa phương tiện.
 
 ---
