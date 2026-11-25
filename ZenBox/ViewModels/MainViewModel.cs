@@ -134,7 +134,6 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _clockTimer.Tick += (_, _) =>
         {
             UpdateClockAndDate();
-            _networkService.RefreshStatus();
         };
         _clockTimer.Start();
 
@@ -142,7 +141,13 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             _configService.Current.RemotePort,
             _errorService,
             HandleRemoteCommand);
-        _remoteServer.Start();
+    }
+
+    public void StartDeferredBackgroundServices()
+    {
+        // Khởi động máy chủ điều khiển từ xa trên luồng nền sau khi cửa sổ chính đã hiển thị tức thì
+        _ = Task.Run(() => _remoteServer.Start());
+        WebVm.TriggerBackgroundWarmup();
     }
 
     partial void OnActiveSectionChanged(AppSection value)

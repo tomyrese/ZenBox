@@ -135,6 +135,50 @@ public sealed class WebBrowserService : IDisposable
         }
     }
 
+    public async Task PrewarmEnvironmentAndExtensionAsync(Panel hostPanel)
+    {
+        try
+        {
+            var env = await GetOrCreateEnvironmentAsync();
+            if (!_uBlockLoadedInProfile)
+            {
+                var warmupView = new WebView2
+                {
+                    Width = 1,
+                    Height = 1,
+                    Visibility = Visibility.Collapsed
+                };
+                hostPanel.Children.Add(warmupView);
+                try
+                {
+                    await warmupView.EnsureCoreWebView2Async(env);
+                    var uBlockDir = GetUBlockExtensionDirectory();
+                    if (File.Exists(Path.Combine(uBlockDir, "manifest.json")))
+                    {
+                        try
+                        {
+                            await warmupView.CoreWebView2.Profile.AddBrowserExtensionAsync(uBlockDir);
+                        }
+                        catch
+                        {
+                            // Đã cài sẵn từ phiên trước
+                        }
+                        _uBlockLoadedInProfile = true;
+                    }
+                }
+                finally
+                {
+                    hostPanel.Children.Remove(warmupView);
+                    warmupView.Dispose();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorService.LogError(ErrorCategory.WebLoadFailed, "WebView2 background prewarm", ex);
+        }
+    }
+
     public async Task<WebView2> GetOrCreateTabAsync(AppSection section, string targetUrl, Panel hostPanel)
     {
         PauseBackgroundTabsMedia(exceptSection: section);

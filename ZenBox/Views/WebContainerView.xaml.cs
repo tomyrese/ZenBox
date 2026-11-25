@@ -21,13 +21,25 @@ public partial class WebContainerView : UserControl
         if (_boundVm is not null)
         {
             _boundVm.TabActivationRequested -= OnTabActivationRequested;
+            _boundVm.WarmupRequested -= OnWarmupRequested;
         }
 
         _boundVm = e.NewValue as WebContainerViewModel;
         if (_boundVm is not null)
         {
             _boundVm.TabActivationRequested += OnTabActivationRequested;
+            _boundVm.WarmupRequested += OnWarmupRequested;
         }
+    }
+
+    private async void OnWarmupRequested(object? sender, EventArgs e)
+    {
+        if (_boundVm is null)
+        {
+            return;
+        }
+
+        await _boundVm.BrowserService.PrewarmEnvironmentAndExtensionAsync(BrowserHostGrid);
     }
 
     private async void OnTabActivationRequested(object? sender, (AppSection Section, string Url) req)

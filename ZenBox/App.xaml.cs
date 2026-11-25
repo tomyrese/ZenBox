@@ -16,25 +16,40 @@ public partial class App : Application
         base.OnStartup(e);
 
         _errorService = new ErrorHandlingService();
-        RegisterGlobalExceptionHandlers(_errorService);
 
-        var configService = new ConfigService(_errorService);
-        var networkService = new NetworkMonitorService();
-        var audioService = new SystemAudioService();
-        var webBrowserService = new WebBrowserService(_errorService, networkService);
-        var mediaLibraryService = new MediaLibraryService(_errorService);
+        try
+        {
+            var configService = new ConfigService(_errorService);
+            var networkService = new NetworkMonitorService();
+            var audioService = new SystemAudioService();
+            var webBrowserService = new WebBrowserService(_errorService, networkService);
+            var mediaLibraryService = new MediaLibraryService(_errorService);
 
-        _mainViewModel = new MainViewModel(
-            _errorService,
-            configService,
-            networkService,
-            audioService,
-            webBrowserService,
-            mediaLibraryService);
+            _mainViewModel = new MainViewModel(
+                _errorService,
+                configService,
+                networkService,
+                audioService,
+                webBrowserService,
+                mediaLibraryService);
 
-        var mainWindow = new MainWindow(_mainViewModel);
-        MainWindow = mainWindow;
-        mainWindow.Show();
+            var mainWindow = new MainWindow(_mainViewModel);
+            MainWindow = mainWindow;
+            mainWindow.Show();
+
+            // Chỉ bật chặn ngoại lệ ngầm sau khi cửa sổ chính đã hiển thị thành công trên màn hình
+            RegisterGlobalExceptionHandlers(_errorService);
+        }
+        catch (Exception ex)
+        {
+            _errorService.LogError(ErrorCategory.UnexpectedSystemError, "Fatal Startup Failure", ex);
+            MessageBox.Show(
+                "ZenBox gặp sự cố khi khởi động. Vui lòng mở lại ứng dụng.",
+                "ZenBox",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            Shutdown(1);
+        }
     }
 
     private void RegisterGlobalExceptionHandlers(ErrorHandlingService errorService)

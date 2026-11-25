@@ -32,6 +32,12 @@ public sealed partial class WebContainerViewModel : ObservableObject
     public WebBrowserService BrowserService => _browserService;
 
     public event EventHandler<(AppSection Section, string Url)>? TabActivationRequested;
+    public event EventHandler? WarmupRequested;
+
+    public void TriggerBackgroundWarmup()
+    {
+        WarmupRequested?.Invoke(this, EventArgs.Empty);
+    }
 
     public WebContainerViewModel(WebBrowserService browserService, Action goHomeCallback)
     {

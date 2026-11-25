@@ -8,6 +8,7 @@ public partial class MainWindow : Window
 {
     private readonly MainViewModel _viewModel;
     private FloatingMenuWindow? _floatingMenuWindow;
+    private bool _backgroundStarted;
 
     public MainWindow(MainViewModel viewModel)
     {
@@ -16,6 +17,7 @@ public partial class MainWindow : Window
         DataContext = _viewModel;
 
         Loaded += OnMainWindowLoaded;
+        ContentRendered += OnMainWindowContentRendered;
         Closed += OnMainWindowClosed;
     }
 
@@ -26,6 +28,18 @@ public partial class MainWindow : Window
             Owner = this
         };
         _floatingMenuWindow.Show();
+    }
+
+    private void OnMainWindowContentRendered(object? sender, EventArgs e)
+    {
+        if (_backgroundStarted)
+        {
+            return;
+        }
+
+        _backgroundStarted = true;
+        // Sau khi khung hình đầu tiên đã hiện lên màn hình, mới âm thầm làm nóng WebView2 + uBlock và mở cổng điều khiển từ xa
+        _viewModel.StartDeferredBackgroundServices();
     }
 
     private void OnMainWindowClosed(object? sender, EventArgs e)

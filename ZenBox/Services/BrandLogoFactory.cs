@@ -128,18 +128,19 @@ public static class BrandLogoFactory
     {
         var g = CreateCanvas();
         const string notePath = "M 58,14 L 58,58 C 58,66.8 50.8,74 42,74 C 33.2,74 26,66.8 26,58 C 26,49.2 33.2,42 42,42 C 43.8,42 45.5,42.3 47,42.9 L 47,30.5 C 45.4,30.2 43.7,30 42,30 C 26.5,30 14,42.5 14,58 C 14,73.5 26.5,86 42,86 C 57.5,86 70,73.5 70,58 L 70,35.5 C 75.2,39.4 81.6,41.8 88.5,41.8 L 88.5,29.8 C 78.2,29.8 69.8,22.8 68.5,14 Z";
+        var baseGeometry = Geometry.Parse(notePath);
 
-        var cyanGeo = Geometry.Parse(notePath);
-        cyanGeo.Transform = new TranslateTransform(-5.5, -3.5);
-        g.Children.Add(new GeometryDrawing(Solid("#25F4EE"), null, cyanGeo));
+        var cyanGroup = new DrawingGroup { Transform = new TranslateTransform(-5.5, -3.5) };
+        cyanGroup.Children.Add(new GeometryDrawing(Solid("#25F4EE"), null, baseGeometry));
+        g.Children.Add(cyanGroup);
 
-        var redGeo = Geometry.Parse(notePath);
-        redGeo.Transform = new TranslateTransform(1.5, 3.0);
-        g.Children.Add(new GeometryDrawing(Solid("#FE2C55"), null, redGeo));
+        var redGroup = new DrawingGroup { Transform = new TranslateTransform(1.5, 3.0) };
+        redGroup.Children.Add(new GeometryDrawing(Solid("#FE2C55"), null, baseGeometry));
+        g.Children.Add(redGroup);
 
-        var whiteGeo = Geometry.Parse(notePath);
-        whiteGeo.Transform = new TranslateTransform(-2.0, 0);
-        g.Children.Add(new GeometryDrawing(Solid("#FFFFFF"), null, whiteGeo));
+        var whiteGroup = new DrawingGroup { Transform = new TranslateTransform(-2.0, 0) };
+        whiteGroup.Children.Add(new GeometryDrawing(Solid("#FFFFFF"), null, baseGeometry));
+        g.Children.Add(whiteGroup);
 
         return Finalize(g);
     }

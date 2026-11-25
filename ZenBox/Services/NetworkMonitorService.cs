@@ -10,9 +10,13 @@ public sealed class NetworkMonitorService : IDisposable
 
     public NetworkMonitorService()
     {
-        IsOnline = CheckNetworkAvailable();
+        // Kiểm tra siêu tốc (< 1ms) ngay lúc khởi động để không chặn luồng mở cửa sổ chính
+        IsOnline = NetworkInterface.GetIsNetworkAvailable();
         NetworkChange.NetworkAvailabilityChanged += OnNetworkAvailabilityChanged;
         NetworkChange.NetworkAddressChanged += OnNetworkAddressChanged;
+
+        // Xác minh chi tiết card mạng trên luồng nền
+        _ = Task.Run(RefreshStatus);
     }
 
     public static bool CheckNetworkAvailable()
@@ -49,12 +53,12 @@ public sealed class NetworkMonitorService : IDisposable
 
     private void OnNetworkAvailabilityChanged(object? sender, NetworkAvailabilityEventArgs e)
     {
-        RefreshStatus();
+        _ = Task.Run(RefreshStatus);
     }
 
     private void OnNetworkAddressChanged(object? sender, EventArgs e)
     {
-        RefreshStatus();
+        _ = Task.Run(RefreshStatus);
     }
 
     public void RefreshStatus()
