@@ -27,45 +27,61 @@
     </Window.Resources>
 
     <Grid Background="{StaticResource DeepDarkBackgroundBrush}" ClipToBounds="True">
-        <!-- Quầng sáng Ambient Aurora tinh tế tạo chiều sâu không gian hiện đại -->
-        <Ellipse Width="960"
-                 Height="640"
+        <!-- Nền Liquid Aurora đa cực mang lại hiệu ứng khúc xạ ánh sáng sâu cho lớp kính phía trên -->
+        <Ellipse Width="1100"
+                 Height="760"
                  HorizontalAlignment="Left"
                  VerticalAlignment="Top"
-                 Margin="-260,-240,0,0"
+                 Margin="-280,-260,0,0"
                  IsHitTestVisible="False">
             <Ellipse.Fill>
                 <RadialGradientBrush>
-                    <GradientStop Color="#1F38BDF8" Offset="0.0" />
-                    <GradientStop Color="#0038BDF8" Offset="1.0" />
+                    <GradientStop Color="#2638BDF8" Offset="0.0" />
+                    <GradientStop Color="#0D0284C7" Offset="0.55" />
+                    <GradientStop Color="#000284C7" Offset="1.0" />
                 </RadialGradientBrush>
             </Ellipse.Fill>
         </Ellipse>
 
-        <Ellipse Width="1020"
-                 Height="720"
+        <Ellipse Width="1200"
+                 Height="820"
                  HorizontalAlignment="Right"
                  VerticalAlignment="Bottom"
-                 Margin="0,0,-280,-260"
+                 Margin="0,0,-320,-280"
                  IsHitTestVisible="False">
             <Ellipse.Fill>
                 <RadialGradientBrush>
-                    <GradientStop Color="#1A6366F1" Offset="0.0" />
-                    <GradientStop Color="#006366F1" Offset="1.0" />
+                    <GradientStop Color="#246366F1" Offset="0.0" />
+                    <GradientStop Color="#0CA855F7" Offset="0.55" />
+                    <GradientStop Color="#00A855F7" Offset="1.0" />
+                </RadialGradientBrush>
+            </Ellipse.Fill>
+        </Ellipse>
+
+        <Ellipse Width="780"
+                 Height="520"
+                 HorizontalAlignment="Center"
+                 VerticalAlignment="Center"
+                 Margin="160,-80,0,0"
+                 IsHitTestVisible="False">
+            <Ellipse.Fill>
+                <RadialGradientBrush>
+                    <GradientStop Color="#1214B8A6" Offset="0.0" />
+                    <GradientStop Color="#0014B8A6" Offset="1.0" />
                 </RadialGradientBrush>
             </Ellipse.Fill>
         </Ellipse>
 
         <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="92" />
+                <RowDefinition Height="94" />
                 <RowDefinition Height="*" />
-                <RowDefinition Height="54" />
+                <RowDefinition Height="52" />
             </Grid.RowDefinitions>
 
-            <!-- Thanh trạng thái trên cùng thẳng hàng chuẩn 56px -->
+            <!-- Thanh trạng thái Liquid Glass trên cùng -->
             <Border Grid.Row="0"
-                    Background="#80090D16"
+                    Background="#55070B14"
                     BorderBrush="#22FFFFFF"
                     BorderThickness="0,0,0,1"
                     Padding="56,0">
@@ -76,113 +92,117 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
-                    <!-- Logo ZenBox Vector hiện đại -->
+                    <!-- Logo ZenBox Liquid Squircle -->
                     <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Border Width="48"
-                                Height="48"
-                                CornerRadius="15"
-                                Background="{StaticResource BrandLogoBrush}"
-                                Margin="0,0,16,0">
-                            <Border.Effect>
-                                <DropShadowEffect BlurRadius="16" ShadowDepth="2" Opacity="0.5" Color="#0284C7" />
-                            </Border.Effect>
+                        <Grid Width="48" Height="48" Margin="0,0,16,0">
+                            <Border CornerRadius="16" Background="{StaticResource BrandLogoBrush}" />
+                            <Border CornerRadius="16" Background="{StaticResource LiquidTopSheenBrush}" />
+                            <Border CornerRadius="16" BorderBrush="#66FFFFFF" BorderThickness="1.2" />
                             <Path Data="{StaticResource IconZenLogoGeometry}"
                                   Fill="#FFFFFF"
                                   Stretch="Uniform"
-                                  Width="26"
-                                  Height="26"
+                                  Width="25"
+                                  Height="25"
                                   HorizontalAlignment="Center"
                                   VerticalAlignment="Center" />
-                        </Border>
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="ZenBox"
-                                       FontSize="32"
-                                       FontWeight="Bold"
-                                       Foreground="{StaticResource TextPrimaryBrush}" />
-                        </StackPanel>
-                    </StackPanel>
-
-                    <!-- Huy hiệu mạng & Đồng hồ bên phải -->
-                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Border CornerRadius="22"
-                                Padding="20,9"
-                                Margin="0,0,32,0"
-                                VerticalAlignment="Center">
-                            <Border.Style>
-                                <Style TargetType="Border">
-                                    <Setter Property="Background" Value="{StaticResource SuccessGreenSoftBrush}" />
-                                    <Setter Property="BorderBrush" Value="#5534D399" />
-                                    <Setter Property="BorderThickness" Value="1.2" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsNetworkConnected}" Value="False">
-                                            <Setter Property="Background" Value="{StaticResource WarningCoralSoftBrush}" />
-                                            <Setter Property="BorderBrush" Value="#66FB7185" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Border.Style>
-
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <Ellipse Width="10" Height="10" Margin="0,0,10,0" VerticalAlignment="Center">
-                                    <Ellipse.Style>
-                                        <Style TargetType="Ellipse">
-                                            <Setter Property="Fill" Value="{StaticResource SuccessGreenBrush}" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsNetworkConnected}" Value="False">
-                                                    <Setter Property="Fill" Value="{StaticResource WarningCoralBrush}" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Ellipse.Style>
-                                </Ellipse>
-
-                                <TextBlock Text="{Binding NetworkStatusLabel}"
-                                           FontSize="18"
-                                           FontWeight="SemiBold"
-                                           VerticalAlignment="Center">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="Foreground" Value="{StaticResource SuccessGreenBrush}" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsNetworkConnected}" Value="False">
-                                                    <Setter Property="Foreground" Value="{StaticResource WarningCoralBrush}" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-                            </StackPanel>
-                        </Border>
-
-                        <TextBlock Text="{Binding VietnameseDateText}"
-                                   FontSize="19"
-                                   FontWeight="Medium"
-                                   Foreground="{StaticResource TextSecondaryBrush}"
-                                   VerticalAlignment="Center"
-                                   Margin="0,0,22,0" />
-                        <TextBlock Text="{Binding ClockTimeText}"
-                                   FontSize="36"
+                        </Grid>
+                        <TextBlock Text="ZenBox"
+                                   FontSize="32"
                                    FontWeight="Bold"
                                    Foreground="{StaticResource TextPrimaryBrush}"
                                    VerticalAlignment="Center" />
                     </StackPanel>
+
+                    <!-- Cụm viên thuốc Liquid Glass báo mạng + Thứ/Ngày + Đồng hồ -->
+                    <Border Grid.Column="2"
+                            Background="#18FFFFFF"
+                            BorderBrush="{StaticResource LiquidGlassRimBrush}"
+                            BorderThickness="1.2"
+                            CornerRadius="26"
+                            Padding="22,8"
+                            VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Border CornerRadius="16"
+                                    Padding="14,6"
+                                    Margin="0,0,22,0"
+                                    VerticalAlignment="Center">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Background" Value="{StaticResource SuccessGreenSoftBrush}" />
+                                        <Setter Property="BorderBrush" Value="#5534D399" />
+                                        <Setter Property="BorderThickness" Value="1" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsNetworkConnected}" Value="False">
+                                                <Setter Property="Background" Value="{StaticResource WarningCoralSoftBrush}" />
+                                                <Setter Property="BorderBrush" Value="#66FB7185" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Ellipse Width="10" Height="10" Margin="0,0,10,0" VerticalAlignment="Center">
+                                        <Ellipse.Style>
+                                            <Style TargetType="Ellipse">
+                                                <Setter Property="Fill" Value="{StaticResource SuccessGreenBrush}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsNetworkConnected}" Value="False">
+                                                        <Setter Property="Fill" Value="{StaticResource WarningCoralBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Ellipse.Style>
+                                    </Ellipse>
+                                    <TextBlock Text="{Binding NetworkStatusLabel}"
+                                               FontSize="18"
+                                               FontWeight="SemiBold"
+                                               VerticalAlignment="Center">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="{StaticResource SuccessGreenBrush}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsNetworkConnected}" Value="False">
+                                                        <Setter Property="Foreground" Value="{StaticResource WarningCoralBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Text="{Binding VietnameseDateText}"
+                                       FontSize="19"
+                                       FontWeight="Medium"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,20,0" />
+
+                            <TextBlock Text="{Binding ClockTimeText}"
+                                       FontSize="32"
+                                       FontWeight="Bold"
+                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                       VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
                 </Grid>
             </Border>
 
-            <!-- Vùng hiển thị chính: Tách biệt hoàn toàn để không bao giờ bị chồng chéo -->
-            <Grid Grid.Row="1">
+            <!-- Vùng hiển thị chính -->
+            <Grid Grid.Row="1" ClipToBounds="False">
                 <ContentControl Content="{Binding ActiveNonWebViewModel}"
                                 Focusable="False"
+                                ClipToBounds="False"
                                 Visibility="{Binding IsNonWebHostVisible, Converter={StaticResource BoolToVis}}" />
 
                 <views:WebContainerView DataContext="{Binding WebVm}"
                                         Visibility="{Binding DataContext.IsWebSectionVisible, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVis}}" />
             </Grid>
 
-            <!-- Thanh gợi ý thao tác nhanh dưới đáy thẳng hàng 56px -->
+            <!-- Thanh gợi ý thao tác nhanh phía dưới -->
             <Border Grid.Row="2"
-                    Background="#80090D16"
-                    BorderBrush="#1FFFFFFF"
+                    Background="#55070B14"
+                    BorderBrush="#1AFFFFFF"
                     BorderThickness="0,1,0,0"
                     Padding="56,0">
                 <Grid>
@@ -191,7 +211,7 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <TextBlock Grid.Column="0"
-                               Text="Mẹo nhanh: Bấm nút tròn nổi bên phải màn hình để mở nhanh Trang Chủ, đổi kênh hoặc chỉnh âm lượng."
+                               Text="Mẹo nhanh: Bấm nút kính tròn nổi bên phải để mở Trung tâm điều khiển, đổi kênh hoặc chỉnh âm lượng."
                                FontSize="18"
                                Foreground="{StaticResource TextSecondaryBrush}"
                                VerticalAlignment="Center"
@@ -206,7 +226,7 @@
                 </Grid>
             </Border>
 
-            <!-- Hộp thoại báo lỗi Glass -->
+            <!-- Hộp thoại thông báo Liquid Glass -->
             <controls:ErrorDialogOverlay Grid.RowSpan="3"
                                          Visibility="{Binding IsErrorVisible, Converter={StaticResource BoolToVis}}" />
         </Grid>

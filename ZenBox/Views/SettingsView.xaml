@@ -4,11 +4,13 @@
              FontFamily="{StaticResource PrimaryFontFamily}">
 
     <ScrollViewer VerticalScrollBarVisibility="Auto"
-                  HorizontalScrollBarVisibility="Disabled"
-                  Padding="56,30,56,28">
-        <StackPanel MaxWidth="1120" HorizontalAlignment="Left">
+                  HorizontalScrollBarVisibility="Disabled">
+        <StackPanel MaxWidth="1160"
+                    HorizontalAlignment="Left"
+                    Margin="56,30,56,36"
+                    ClipToBounds="False">
             <!-- Tiêu đề màn hình -->
-            <Grid Margin="0,0,0,28">
+            <Grid Margin="0,0,0,28" ClipToBounds="False">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
@@ -45,7 +47,7 @@
             <Border Background="{StaticResource SuccessGreenSoftBrush}"
                     BorderBrush="#6634D399"
                     BorderThickness="1.5"
-                    CornerRadius="18"
+                    CornerRadius="22"
                     Padding="24,16"
                     Margin="0,0,0,24"
                     Visibility="{Binding HasStatusMessage, Converter={StaticResource BoolToVis}}">
@@ -56,25 +58,26 @@
             </Border>
 
             <!-- Mục 1: Thư mục Phim -->
-            <Border Style="{StaticResource GlassPanelBorderStyle}" Padding="32,28" Margin="0,0,0,22">
-                <Grid>
+            <Grid Margin="0,0,0,22" ClipToBounds="False">
+                <Border Style="{StaticResource GlassPanelBorderStyle}" />
+                <Border Background="{StaticResource LiquidTopSheenBrush}" CornerRadius="28" Margin="1.5" IsHitTestVisible="False" />
+                <Grid Margin="32,28" ClipToBounds="False">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <Border Grid.Column="0"
-                            Width="60"
-                            Height="60"
-                            CornerRadius="18"
-                            Margin="0,0,22,0"
-                            VerticalAlignment="Center">
-                        <Border.Background>
-                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                <GradientStop Color="#F59E0B" Offset="0" />
-                                <GradientStop Color="#EA580C" Offset="1" />
-                            </LinearGradientBrush>
-                        </Border.Background>
+                    <Grid Grid.Column="0" Width="62" Height="62" Margin="0,0,22,0" VerticalAlignment="Center">
+                        <Border CornerRadius="18">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#F59E0B" Offset="0" />
+                                    <GradientStop Color="#EA580C" Offset="1" />
+                                </LinearGradientBrush>
+                            </Border.Background>
+                        </Border>
+                        <Border CornerRadius="18" Background="{StaticResource LiquidTopSheenBrush}" />
+                        <Border CornerRadius="18" BorderBrush="#66FFFFFF" BorderThickness="1.2" />
                         <Path Data="{StaticResource IconMovieGeometry}"
                               Fill="#FFFFFF"
                               Stretch="Uniform"
@@ -82,7 +85,7 @@
                               Height="28"
                               HorizontalAlignment="Center"
                               VerticalAlignment="Center" />
-                    </Border>
+                    </Grid>
                     <StackPanel Grid.Column="1" Margin="0,0,24,0" VerticalAlignment="Center">
                         <TextBlock Text="Thư mục chứa Phim của tôi"
                                    FontSize="24"
@@ -112,28 +115,29 @@
                         </StackPanel>
                     </Button>
                 </Grid>
-            </Border>
+            </Grid>
 
             <!-- Mục 2: Thư mục Nhạc -->
-            <Border Style="{StaticResource GlassPanelBorderStyle}" Padding="32,28" Margin="0,0,0,22">
-                <Grid>
+            <Grid Margin="0,0,0,22" ClipToBounds="False">
+                <Border Style="{StaticResource GlassPanelBorderStyle}" />
+                <Border Background="{StaticResource LiquidTopSheenBrush}" CornerRadius="28" Margin="1.5" IsHitTestVisible="False" />
+                <Grid Margin="32,28" ClipToBounds="False">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <Border Grid.Column="0"
-                            Width="60"
-                            Height="60"
-                            CornerRadius="18"
-                            Margin="0,0,22,0"
-                            VerticalAlignment="Center">
-                        <Border.Background>
-                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                <GradientStop Color="#A855F7" Offset="0" />
-                                <GradientStop Color="#EC4899" Offset="1" />
-                            </LinearGradientBrush>
-                        </Border.Background>
+                    <Grid Grid.Column="0" Width="62" Height="62" Margin="0,0,22,0" VerticalAlignment="Center">
+                        <Border CornerRadius="18">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#A855F7" Offset="0" />
+                                    <GradientStop Color="#EC4899" Offset="1" />
+                                </LinearGradientBrush>
+                            </Border.Background>
+                        </Border>
+                        <Border CornerRadius="18" Background="{StaticResource LiquidTopSheenBrush}" />
+                        <Border CornerRadius="18" BorderBrush="#66FFFFFF" BorderThickness="1.2" />
                         <Path Data="{StaticResource IconMusicGeometry}"
                               Fill="#FFFFFF"
                               Stretch="Uniform"
@@ -141,7 +145,7 @@
                               Height="28"
                               HorizontalAlignment="Center"
                               VerticalAlignment="Center" />
-                    </Border>
+                    </Grid>
                     <StackPanel Grid.Column="1" Margin="0,0,24,0" VerticalAlignment="Center">
                         <TextBlock Text="Thư mục chứa Nhạc của tôi"
                                    FontSize="24"
@@ -171,11 +175,13 @@
                         </StackPanel>
                     </Button>
                 </Grid>
-            </Border>
+            </Grid>
 
             <!-- Mục 3: Khởi động cùng Windows 11 -->
-            <Border Style="{StaticResource GlassPanelBorderStyle}" Padding="32,28">
-                <StackPanel>
+            <Grid ClipToBounds="False">
+                <Border Style="{StaticResource GlassPanelBorderStyle}" />
+                <Border Background="{StaticResource LiquidTopSheenBrush}" CornerRadius="28" Margin="1.5" IsHitTestVisible="False" />
+                <StackPanel Margin="32,28">
                     <TextBlock Text="Khởi động tự động cùng máy tính"
                                FontSize="24"
                                FontWeight="SemiBold"
@@ -185,7 +191,7 @@
                               IsChecked="{Binding StartWithWindows, Mode=TwoWay}"
                               Content="Tự khởi động cùng Windows 11 ngay khi bật nguồn máy tính" />
                 </StackPanel>
-            </Border>
+            </Grid>
         </StackPanel>
     </ScrollViewer>
 </UserControl>

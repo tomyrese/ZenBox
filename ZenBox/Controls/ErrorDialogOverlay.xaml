@@ -1,91 +1,128 @@
 <UserControl x:Class="ZenBox.Controls.ErrorDialogOverlay"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             FontFamily="{StaticResource PrimaryFontFamily}">
+             FontFamily="{StaticResource PrimaryFontFamily}"
+             IsVisibleChanged="OnOverlayIsVisibleChanged">
 
-    <Grid Background="{StaticResource ModalBackdropBrush}">
-        <Border Width="820"
-                Margin="48"
-                Padding="44,40"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                Background="#F50D1424"
-                BorderBrush="#66FB7185"
-                BorderThickness="1.5"
-                CornerRadius="28">
-            <Border.Effect>
-                <DropShadowEffect BlurRadius="36" ShadowDepth="12" Opacity="0.6" Color="#000000" />
-            </Border.Effect>
+    <Grid x:Name="OverlayBackdrop" Background="{StaticResource ModalBackdropBrush}">
+        <Grid x:Name="DialogSheet"
+              Width="780"
+              Margin="48"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Center"
+              RenderTransformOrigin="0.5,0.5"
+              ClipToBounds="False">
+            <Grid.RenderTransform>
+                <TransformGroup>
+                    <ScaleTransform x:Name="DialogScale" ScaleX="0.93" ScaleY="0.93" />
+                    <TranslateTransform x:Name="DialogTranslate" X="0" Y="18" />
+                </TransformGroup>
+            </Grid.RenderTransform>
 
-            <StackPanel>
-                <!-- Phần 1: Tiêu đề + Giải thích bình dân -->
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,18">
-                    <Border Width="60"
-                            Height="60"
-                            CornerRadius="20"
-                            Background="{StaticResource WarningCoralSoftBrush}"
-                            BorderBrush="{StaticResource WarningCoralBrush}"
-                            BorderThickness="1.5"
-                            Margin="0,0,20,0">
-                        <TextBlock Text="!"
-                                   FontSize="34"
-                                   FontWeight="Bold"
-                                   Foreground="{StaticResource WarningCoralBrush}"
-                                   HorizontalAlignment="Center"
-                                   VerticalAlignment="Center" />
+            <!-- Quầng sáng khúc xạ màu san hô dịu phía sau mặt kính -->
+            <Ellipse Width="680"
+                     Height="440"
+                     Fill="{StaticResource CoralAmbientBloomBrush}"
+                     HorizontalAlignment="Center"
+                     VerticalAlignment="Center"
+                     IsHitTestVisible="False" />
+
+            <!-- Thân kính Liquid Glass bo tròn lớn 36px -->
+            <Border Background="{StaticResource LiquidDialogFillBrush}"
+                    BorderBrush="{StaticResource LiquidGlassRimBrush}"
+                    BorderThickness="1.8"
+                    CornerRadius="36" />
+
+            <!-- Ánh phản quang vòm kính phía trên -->
+            <Border Background="{StaticResource LiquidTopSheenBrush}"
+                    CornerRadius="36"
+                    Margin="1.8"
+                    IsHitTestVisible="False" />
+
+            <StackPanel Margin="46,42" ClipToBounds="False">
+                <!-- Huy hiệu quả cầu kính 3D ở trung tâm -->
+                <Grid Width="76" Height="76" HorizontalAlignment="Center" Margin="0,0,0,20">
+                    <Ellipse Fill="{StaticResource CoralAmbientBloomBrush}" Margin="-12" />
+                    <Border CornerRadius="24">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                <GradientStop Color="#FB7185" Offset="0.0" />
+                                <GradientStop Color="#E11D48" Offset="1.0" />
+                            </LinearGradientBrush>
+                        </Border.Background>
                     </Border>
-                    <TextBlock Text="{Binding ActiveError.Title}"
-                               FontSize="32"
-                               FontWeight="Bold"
-                               Foreground="{StaticResource TextPrimaryBrush}"
-                               TextWrapping="Wrap"
-                               VerticalAlignment="Center"
-                               MaxWidth="640" />
-                </StackPanel>
+                    <Border CornerRadius="24" Background="{StaticResource LiquidTopSheenBrush}" />
+                    <Border CornerRadius="24" BorderBrush="#88FFFFFF" BorderThickness="1.4" />
+                    <Path Data="{StaticResource IconWarningBellGeometry}"
+                          Fill="#FFFFFF"
+                          Stretch="Uniform"
+                          Width="34"
+                          Height="34"
+                          HorizontalAlignment="Center"
+                          VerticalAlignment="Center" />
+                </Grid>
+
+                <!-- Tiêu đề & Giải thích căn giữa thanh lịch, dễ đọc từ xa -->
+                <TextBlock Text="{Binding ActiveError.Title}"
+                           FontSize="32"
+                           FontWeight="Bold"
+                           Foreground="{StaticResource TextPrimaryBrush}"
+                           TextAlignment="Center"
+                           TextWrapping="Wrap"
+                           Margin="0,0,0,12" />
 
                 <TextBlock Text="{Binding ActiveError.Explanation}"
-                           FontSize="21"
+                           FontSize="20"
                            Foreground="{StaticResource TextSecondaryBrush}"
+                           TextAlignment="Center"
                            TextWrapping="Wrap"
-                           LineHeight="32"
-                           Margin="0,0,0,26" />
+                           LineHeight="30"
+                           MaxWidth="640"
+                           Margin="0,0,0,28" />
 
-                <!-- Phần 2: 1-2 bước tự khắc phục đơn giản -->
+                <!-- Hộp kính hướng dẫn từng bước tự khắc phục -->
                 <Border Background="#18FFFFFF"
                         BorderBrush="#2EFFFFFF"
-                        BorderThickness="1"
-                        CornerRadius="20"
-                        Padding="26,22"
+                        BorderThickness="1.2"
+                        CornerRadius="24"
+                        Padding="28,22"
                         Margin="0,0,0,32">
                     <StackPanel>
-                        <TextBlock Text="Cách khắc phục nhanh:"
-                                   FontSize="21"
+                        <TextBlock Text="Gợi ý kiểm tra nhanh"
+                                   FontSize="19"
                                    FontWeight="SemiBold"
                                    Foreground="{StaticResource AccentCyanBrush}"
                                    Margin="0,0,0,12" />
                         <ItemsControl ItemsSource="{Binding ActiveError.RecoverySteps}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <TextBlock Text="{Binding}"
-                                               FontSize="19"
-                                               Foreground="{StaticResource TextPrimaryBrush}"
-                                               TextWrapping="Wrap"
-                                               LineHeight="30"
-                                               Margin="0,0,0,8" />
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <Ellipse Width="8"
+                                                 Height="8"
+                                                 Fill="{StaticResource AccentCyanBrush}"
+                                                 VerticalAlignment="Top"
+                                                 Margin="0,11,12,0" />
+                                        <TextBlock Text="{Binding}"
+                                                   FontSize="19"
+                                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                                   TextWrapping="Wrap"
+                                                   LineHeight="29"
+                                                   MaxWidth="590" />
+                                    </StackPanel>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                     </StackPanel>
                 </Border>
 
-                <!-- Phần 3: Các nút hành động đối xứng rõ ràng -->
-                <WrapPanel HorizontalAlignment="Center">
+                <!-- Cụm nút viên thuốc Liquid Capsule -->
+                <WrapPanel HorizontalAlignment="Center" ClipToBounds="False">
                     <Button Style="{StaticResource PrimaryCyanButtonStyle}"
                             Command="{Binding RetryErrorActionCommand}"
                             Visibility="{Binding ActiveError.CanRetry, Converter={StaticResource BoolToVis}}"
                             MinHeight="62"
-                            MinWidth="220"
-                            Margin="0,0,18,0">
+                            MinWidth="210"
+                            Margin="0,0,16,0">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <Path Data="{StaticResource IconRefreshGeometry}"
                                   Fill="#FFFFFF"
@@ -101,8 +138,8 @@
                     <Button Style="{StaticResource GlassActionButtonStyle}"
                             Command="{Binding DismissErrorToHomeCommand}"
                             MinHeight="62"
-                            MinWidth="220"
-                            Margin="0,0,18,0">
+                            MinWidth="210"
+                            Margin="0,0,16,0">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <Path Data="{StaticResource IconHomeGeometry}"
                                   Fill="{StaticResource TextPrimaryBrush}"
@@ -118,7 +155,7 @@
                     <Button Style="{StaticResource GlassActionButtonStyle}"
                             Command="{Binding DismissErrorToOfflineMoviesCommand}"
                             MinHeight="62"
-                            MinWidth="230">
+                            MinWidth="220">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <Path Data="{StaticResource IconMovieGeometry}"
                                   Fill="#FBBF24"
@@ -132,6 +169,6 @@
                     </Button>
                 </WrapPanel>
             </StackPanel>
-        </Border>
+        </Grid>
     </Grid>
 </UserControl>

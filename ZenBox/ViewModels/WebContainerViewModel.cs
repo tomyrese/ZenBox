@@ -22,6 +22,9 @@ public sealed partial class WebContainerViewModel : ObservableObject
     [ObservableProperty]
     private bool _isAddressBarVisible;
 
+    [ObservableProperty]
+    private bool _isToolbarVisible = true;
+
     public WebBrowserService BrowserService => _browserService;
 
     public event EventHandler<(AppSection Section, string Url)>? TabActivationRequested;
@@ -43,11 +46,17 @@ public sealed partial class WebContainerViewModel : ObservableObject
         {
             IsLoading = loading;
         };
+
+        _browserService.FullscreenStateChanged += (_, isFullscreen) =>
+        {
+            IsToolbarVisible = !isFullscreen;
+        };
     }
 
     public void OpenChannel(AppSection section, string url, string displayName)
     {
         ChannelTitle = displayName;
+        IsToolbarVisible = true;
         IsAddressBarVisible = section == AppSection.WebBrowser;
         if (IsAddressBarVisible)
         {

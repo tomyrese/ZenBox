@@ -1,13 +1,14 @@
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using ZenBox.ViewModels;
 
 namespace ZenBox.Views;
 
 public partial class FloatingMenuWindow : Window
 {
-    private const double CompactWindowSize = 88.0;
+    private const double CompactWindowSize = 96.0;
     private const double DragThresholdPixels = 8.0;
 
     private readonly MainViewModel _mainVm;
@@ -33,7 +34,7 @@ public partial class FloatingMenuWindow : Window
         var workArea = SystemParameters.WorkArea;
         var cfg = _mainVm.ConfigService.Current;
 
-        _savedBallLeft = cfg.FloatingButtonLeft ?? (workArea.Right - CompactWindowSize - 28);
+        _savedBallLeft = cfg.FloatingButtonLeft ?? (workArea.Right - CompactWindowSize - 24);
         _savedBallTop = cfg.FloatingButtonTop ?? (workArea.Top + (workArea.Height - CompactWindowSize) / 2.0);
         ClampSavedPositionToScreen();
 
@@ -123,12 +124,26 @@ public partial class FloatingMenuWindow : Window
         _isMenuExpanded = true;
 
         AssistiveBallContainer.Visibility = Visibility.Collapsed;
+        ExpandedMenuOverlay.Opacity = 0;
         ExpandedMenuOverlay.Visibility = Visibility.Visible;
 
         Left = 0;
         Top = 0;
         Width = SystemParameters.PrimaryScreenWidth;
         Height = SystemParameters.PrimaryScreenHeight;
+
+        PlaySheetEntranceAnimation();
+    }
+
+    private void PlaySheetEntranceAnimation()
+    {
+        var ease = new QuinticEase { EasingMode = EasingMode.EaseOut };
+        var duration = new Duration(TimeSpan.FromMilliseconds(280));
+
+        ExpandedMenuOverlay.BeginAnimation(OpacityProperty, new DoubleAnimation(0.0, 1.0, new Duration(TimeSpan.FromMilliseconds(200))));
+        SheetScale.BeginAnimation(ScaleTransform.ScaleXProperty, new DoubleAnimation(0.92, 1.0, duration) { EasingFunction = ease });
+        SheetScale.BeginAnimation(ScaleTransform.ScaleYProperty, new DoubleAnimation(0.92, 1.0, duration) { EasingFunction = ease });
+        SheetTranslate.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(20.0, 0.0, duration) { EasingFunction = ease });
     }
 
     private void CollapseQuickMenu()

@@ -9,23 +9,24 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- Thanh điều hướng trình duyệt gọn, thẳng hàng 56px -->
+        <!-- Thanh điều hướng trình duyệt Liquid Glass (tự động ẩn khi xem video toàn màn hình) -->
         <Border Grid.Row="0"
-                Background="#CC0B0F19"
+                Background="#CC070B14"
                 BorderBrush="#24FFFFFF"
                 BorderThickness="0,0,0,1"
-                Padding="56,12">
-            <Grid>
+                Padding="56,12"
+                Visibility="{Binding IsToolbarVisible, Converter={StaticResource BoolToVis}}">
+            <Grid ClipToBounds="False">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" ClipToBounds="False">
                     <Button Style="{StaticResource GlassActionButtonStyle}"
                             Command="{Binding GoBackCommand}"
-                            MinHeight="56"
+                            MinHeight="54"
                             Margin="0,0,14,0">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <Path Data="{StaticResource IconBackGeometry}"
@@ -35,13 +36,13 @@
                                   Height="18"
                                   Margin="0,0,10,0"
                                   VerticalAlignment="Center" />
-                            <TextBlock Text="Trang trước" FontSize="19" VerticalAlignment="Center" />
+                            <TextBlock Text="Trang trước" FontSize="18" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
 
                     <Button Style="{StaticResource GlassActionButtonStyle}"
                             Command="{Binding ReloadPageCommand}"
-                            MinHeight="56"
+                            MinHeight="54"
                             Margin="0,0,20,0">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <Path Data="{StaticResource IconRefreshGeometry}"
@@ -51,33 +52,34 @@
                                   Height="18"
                                   Margin="0,0,10,0"
                                   VerticalAlignment="Center" />
-                            <TextBlock Text="Tải lại trang" FontSize="19" VerticalAlignment="Center" />
+                            <TextBlock Text="Tải lại trang" FontSize="18" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
                 </StackPanel>
 
-                <!-- Ô nhập địa chỉ khi mở Trình duyệt Web -->
+                <!-- Thanh tìm kiếm viên thuốc Liquid Glass -->
                 <Grid Grid.Column="1"
                       VerticalAlignment="Center"
                       Margin="0,0,20,0"
+                      ClipToBounds="False"
                       Visibility="{Binding IsAddressBarVisible, Converter={StaticResource BoolToVis}}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <Border Grid.Column="0"
-                            Background="#1AFFFFFF"
-                            BorderBrush="#36FFFFFF"
-                            BorderThickness="1.2"
-                            CornerRadius="16"
-                            Padding="18,10"
+                            Background="#1EFFFFFF"
+                            BorderBrush="{StaticResource LiquidGlassRimBrush}"
+                            BorderThickness="1.4"
+                            CornerRadius="24"
+                            Padding="22,10"
                             Margin="0,0,14,0">
                         <TextBox Text="{Binding AddressText, UpdateSourceTrigger=PropertyChanged}"
                                  Background="Transparent"
                                  BorderThickness="0"
                                  Foreground="{StaticResource TextPrimaryBrush}"
                                  CaretBrush="{StaticResource AccentCyanBrush}"
-                                 FontSize="20"
+                                 FontSize="19"
                                  VerticalContentAlignment="Center"
                                  KeyDown="OnAddressBoxKeyDown" />
                     </Border>
@@ -85,12 +87,12 @@
                             Content="Đi tới"
                             Style="{StaticResource PrimaryCyanButtonStyle}"
                             Command="{Binding NavigateToAddressCommand}"
-                            MinHeight="56"
+                            MinHeight="54"
                             MinWidth="130" />
                 </Grid>
 
-                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="Đang mở trang..."
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" ClipToBounds="False">
+                    <TextBlock Text="Đang đồng bộ trang..."
                                FontSize="18"
                                Foreground="{StaticResource AccentCyanBrush}"
                                VerticalAlignment="Center"
@@ -98,7 +100,7 @@
                                Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}" />
                     <Button Style="{StaticResource PrimaryCyanButtonStyle}"
                             Command="{Binding GoHomeCommand}"
-                            MinHeight="56">
+                            MinHeight="54">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <Path Data="{StaticResource IconHomeGeometry}"
                                   Fill="#FFFFFF"
@@ -107,13 +109,13 @@
                                   Height="18"
                                   Margin="0,0,10,0"
                                   VerticalAlignment="Center" />
-                            <TextBlock Text="Về Trang Chủ" FontSize="19" VerticalAlignment="Center" />
+                            <TextBlock Text="Về Trang Chủ" FontSize="18" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
                 </StackPanel>
             </Grid>
         </Border>
 
-        <Grid x:Name="BrowserHostGrid" Grid.Row="1" Background="#0B0F19" />
+        <Grid x:Name="BrowserHostGrid" Grid.Row="1" Background="#080C16" />
     </Grid>
 </UserControl>

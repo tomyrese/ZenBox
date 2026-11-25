@@ -3,22 +3,22 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vlc="clr-namespace:LibVLCSharp.WPF;assembly=LibVLCSharp.WPF"
              FontFamily="{StaticResource PrimaryFontFamily}"
+             Loaded="OnMediaPlayerLoaded"
              Unloaded="OnMediaPlayerUnloaded">
 
-    <!-- Bố cục 3 hàng độc lập: Không nhét phần tử con vào VideoView để triệt tiêu hoàn toàn lỗi cửa sổ phủ đè lên màn hình khác -->
-    <Grid Background="#05080F">
+    <Grid Background="#04070E">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- Hàng 0: Thanh tiêu đề trên cùng (tự ẩn khi xem phim sau 3 giây không di chuột) -->
+        <!-- Thanh tiêu đề Liquid Glass phía trên -->
         <Border Grid.Row="0"
-                Background="#E60B0F19"
-                BorderBrush="#22FFFFFF"
+                Background="#D9080D1A"
+                BorderBrush="#24FFFFFF"
                 BorderThickness="0,0,0,1"
-                Padding="56,16"
+                Padding="56,14"
                 Visibility="{Binding IsControlsVisible, Converter={StaticResource BoolToVis}}">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -51,60 +51,62 @@
             </Grid>
         </Border>
 
-        <!-- Hàng 1: Khung hiển thị Video hoặc Bìa Đĩa Nhạc -->
+        <!-- Khung hiển thị Video / Đĩa Nhạc -->
         <Grid Grid.Row="1">
             <vlc:VideoView x:Name="VlcVideoSurface"
-                           MediaPlayer="{Binding VlcPlayer}"
                            HorizontalAlignment="Stretch"
                            VerticalAlignment="Stretch"
                            Background="#000000"
                            Visibility="{Binding IsVideoTrack, Converter={StaticResource BoolToVis}}" />
 
-            <!-- Giao diện thưởng thức Nhạc sang trọng -->
-            <Border MaxWidth="540"
-                    Padding="40"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                    Style="{StaticResource GlassPanelBorderStyle}"
-                    Background="#CC0F172A"
-                    Visibility="{Binding IsAudioTrack, Converter={StaticResource BoolToVis}}">
-                <StackPanel HorizontalAlignment="Center">
-                    <Border Width="260"
-                            Height="260"
-                            CornerRadius="28"
-                            ClipToBounds="True"
-                            BorderBrush="#40FFFFFF"
-                            BorderThickness="1.5"
-                            Margin="0,0,0,24">
-                        <Border.Effect>
-                            <DropShadowEffect BlurRadius="28" ShadowDepth="8" Opacity="0.5" Color="#000000" />
-                        </Border.Effect>
-                        <Image Source="{Binding CurrentMedia.CoverImage}" Stretch="UniformToFill" />
-                    </Border>
-                    <TextBlock Text="{Binding MediaTitle}"
-                               FontSize="26"
-                               FontWeight="Bold"
-                               Foreground="{StaticResource TextPrimaryBrush}"
-                               TextAlignment="Center"
-                               TextWrapping="Wrap"
-                               Margin="0,0,0,8" />
-                    <TextBlock Text="Đang phát từ thư viện nhạc trong máy"
-                               FontSize="18"
-                               Foreground="{StaticResource AccentCyanBrush}"
-                               TextAlignment="Center" />
-                </StackPanel>
-            </Border>
+            <!-- Đảo kính thưởng thức Nhạc Liquid Glass -->
+            <Grid Visibility="{Binding IsAudioTrack, Converter={StaticResource BoolToVis}}">
+                <Ellipse Width="520"
+                         Height="520"
+                         Fill="{StaticResource CyanAmbientBloomBrush}"
+                         HorizontalAlignment="Center"
+                         VerticalAlignment="Center" />
+
+                <Border Width="520"
+                        Padding="44"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Style="{StaticResource GlassPanelBorderStyle}"
+                        CornerRadius="36">
+                    <StackPanel HorizontalAlignment="Center">
+                        <Border Width="260"
+                                Height="260"
+                                CornerRadius="30"
+                                ClipToBounds="True"
+                                BorderBrush="#66FFFFFF"
+                                BorderThickness="1.5"
+                                Margin="0,0,0,26">
+                            <Image Source="{Binding CurrentMedia.CoverImage}" Stretch="UniformToFill" />
+                        </Border>
+                        <TextBlock Text="{Binding MediaTitle}"
+                                   FontSize="26"
+                                   FontWeight="Bold"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   TextAlignment="Center"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,8" />
+                        <TextBlock Text="Đang phát từ thư viện nhạc trong máy"
+                                   FontSize="18"
+                                   Foreground="{StaticResource AccentCyanBrush}"
+                                   TextAlignment="Center" />
+                    </StackPanel>
+                </Border>
+            </Grid>
         </Grid>
 
-        <!-- Hàng 2: Thanh điều khiển phát Media hiện đại (tự ẩn sau 3 giây khi xem phim) -->
+        <!-- Thanh điều khiển phát Media Liquid Glass phía dưới -->
         <Border Grid.Row="2"
-                Background="#F00B0F19"
-                BorderBrush="#26FFFFFF"
+                Background="#E6080D1A"
+                BorderBrush="#28FFFFFF"
                 BorderThickness="0,1,0,0"
-                Padding="56,20,56,22"
+                Padding="56,18,56,22"
                 Visibility="{Binding IsControlsVisible, Converter={StaticResource BoolToVis}}">
             <StackPanel>
-                <!-- Thanh tiến trình bo tròn mượt mà -->
                 <Grid Margin="0,0,0,18" VerticalAlignment="Center">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="90" />
@@ -140,13 +142,12 @@
                                VerticalAlignment="Center" />
                 </Grid>
 
-                <!-- Cụm nút điều khiển đồng bộ kích thước và biểu tượng Vector -->
-                <WrapPanel HorizontalAlignment="Center">
+                <WrapPanel HorizontalAlignment="Center" ClipToBounds="False">
                     <Button Style="{StaticResource GlassActionButtonStyle}"
                             Command="{Binding Rewind15SecondsCommand}"
                             MinHeight="60"
                             MinWidth="215"
-                            Margin="0,0,20,0">
+                            Margin="0,0,18,0">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <Path Data="{StaticResource IconRewindGeometry}"
                                   Fill="{StaticResource TextPrimaryBrush}"
@@ -163,7 +164,7 @@
                             Command="{Binding TogglePlayPauseCommand}"
                             MinHeight="60"
                             MinWidth="230"
-                            Margin="0,0,20,0">
+                            Margin="0,0,18,0">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <Path Stretch="Uniform"
                                   Width="20"
@@ -190,7 +191,7 @@
                             Command="{Binding Forward15SecondsCommand}"
                             MinHeight="60"
                             MinWidth="215"
-                            Margin="0,0,20,0">
+                            Margin="0,0,18,0">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <TextBlock Text="Tua tới 15 giây" FontSize="20" Margin="0,0,10,0" VerticalAlignment="Center" />
                             <Path Data="{StaticResource IconForwardGeometry}"

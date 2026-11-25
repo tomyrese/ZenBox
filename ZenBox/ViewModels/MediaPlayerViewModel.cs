@@ -20,6 +20,7 @@ public sealed partial class MediaPlayerViewModel : ObservableObject, IDisposable
     private readonly DispatcherTimer _cursorWatchTimer;
 
     private LibVLC? _libVlc;
+    private MediaItem? _pendingMediaToStart;
     private bool _isUserDraggingSlider;
     private NativePoint _lastCursorPoint;
     private DateTime _lastMouseMoveUtc = DateTime.UtcNow;
@@ -76,7 +77,6 @@ public sealed partial class MediaPlayerViewModel : ObservableObject, IDisposable
 
         GetCursorPos(out _lastCursorPoint);
 
-        // Theo dõi chuyển động chuột ở cấp hệ điều hành để tự ẩn/hiện thanh điều khiển mà không cần tạo cửa sổ phủ đè lên VideoView
         _cursorWatchTimer = new DispatcherTimer
         {
             Interval = TimeSpan.FromMilliseconds(200)
@@ -109,11 +109,11 @@ public sealed partial class MediaPlayerViewModel : ObservableObject, IDisposable
         }
     }
 
-    private void EnsureVlcInitialized()
+    public MediaPlayer? EnsurePlayerReady()
     {
         if (_libVlc is not null && VlcPlayer is not null)
         {
-            return;
+            return VlcPlayer;
         }
 
         lock (VlcInitLock)
@@ -133,7 +133,7 @@ public sealed partial class MediaPlayerViewModel : ObservableObject, IDisposable
             }
         }
 
-        _libVlc = new LibVLC("--avcodec-hw=any", "--quiet");
+        _libVlc = new LibVLC("--avcodec-hw=any", "--quiet", "--no-video-title-show");
         var player = new MediaPlayer(_libVlc);
 
         player.Playing += (_, _) => RunOnUi(() =>
@@ -192,11 +192,13 @@ public sealed partial class MediaPlayerViewModel : ObservableObject, IDisposable
                     if (CurrentMedia is not null)
                     {
                         PlayMedia(CurrentMedia);
+                        StartPendingPlayback();
                     }
                 });
         });
 
         VlcPlayer = player;
+        return VlcPlayer;
     }
 
     public void PlayMedia(MediaItem item)
@@ -214,13 +216,36 @@ public sealed partial class MediaPlayerViewModel : ObservableObject, IDisposable
 
         if (!File.Exists(item.FilePath))
         {
+            _pendingMediaToStart = null;
             _errorService.ReportError(ErrorCategory.MediaFileCorrupted, $"File does not exist: {item.FilePath}");
             return;
         }
 
         try
         {
-            EnsureVlcInitialized();
+            EnsurePlayerReady();
+            _pendingMediaToStart = item;
+        }
+        catch (Exception ex)
+        {
+            _pendingMediaToStart = null;
+            _errorService.ReportError(ErrorCategory.MediaFileCorrupted, $"Prepare PlayMedia exception: {item.FilePath}", ex);
+        }
+    }
+
+    // Được gọi sau khi VideoView đã gắn HWND thực tế vào MediaPlayer, đảm bảo không bao giờ bung cửa sổ Direct3D rời hay đen hình
+    public void StartPendingPlayback()
+    {
+        var item = _pendingMediaToStart;
+        if (item is null)
+        {
+            return;
+        }
+
+        _pendingMediaToStart = null;
+        try
+        {
+            EnsurePlayerReady();
             if (_libVlc is null || VlcPlayer is null)
             {
                 return;
@@ -237,17 +262,18 @@ public sealed partial class MediaPlayerViewModel : ObservableObject, IDisposable
         }
         catch (Exception ex)
         {
-            _errorService.ReportError(ErrorCategory.MediaFileCorrupted, $"PlayMedia exception: {item.FilePath}", ex);
+            _errorService.ReportError(ErrorCategory.MediaFileCorrupted, $"StartPendingPlayback exception: {item.FilePath}", ex);
         }
     }
 
     public void StopPlayback()
     {
+        _pendingMediaToStart = null;
         _cursorWatchTimer.Stop();
         IsControlsVisible = true;
         try
         {
-            if (VlcPlayer?.IsPlaying == true)
+            if (VlcPlayer is not null && (VlcPlayer.IsPlaying || VlcPlayer.State is VLCState.Paused or VLCState.Opening))
             {
                 VlcPlayer.Stop();
             }
@@ -290,9 +316,10 @@ public sealed partial class MediaPlayerViewModel : ObservableObject, IDisposable
             return;
         }
 
-        if (VlcPlayer.State == VLCState.Ended && CurrentMedia is not null)
+        if (VlcPlayer.State is VLCState.Ended or VLCState.Stopped && CurrentMedia is not null)
         {
             PlayMedia(CurrentMedia);
+            StartPendingPlayback();
             return;
         }
 
