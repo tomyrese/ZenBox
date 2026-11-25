@@ -18,6 +18,7 @@ public sealed partial class HomeViewModel : ObservableObject
     {
         _onTileSelected = onTileSelected;
 
+        // 14 ứng dụng trực tuyến xếp cân đối hoàn hảo 2 hàng x 7 cột
         OnlineTiles =
         [
             CreateOnline(AppSection.YouTube, "YouTube", "https://www.youtube.com", "#FF0033"),
@@ -25,10 +26,14 @@ public sealed partial class HomeViewModel : ObservableObject
             CreateOnline(AppSection.Spotify, "Spotify", "https://open.spotify.com", "#1ED760"),
             CreateOnline(AppSection.TikTok, "TikTok", "https://www.tiktok.com", "#FE2C55"),
             CreateOnline(AppSection.Facebook, "Facebook", "https://www.facebook.com", "#0866FF"),
+            CreateOnline(AppSection.FptPlay, "FPT Play", "https://fptplay.vn", "#FF6B00"),
+            CreateOnline(AppSection.VtvGo, "VTV Go", "https://vtvgo.vn", "#10B981"),
+            CreateOnline(AppSection.ZingMp3, "Zing MP3", "https://zingmp3.vn", "#A855F7"),
+            CreateOnline(AppSection.AppleMusic, "Apple Music", "https://music.apple.com", "#FA233B"),
+            CreateOnline(AppSection.PrimeVideo, "Prime Video", "https://www.primevideo.com", "#00A8E1"),
             CreateOnline(AppSection.Instagram, "Instagram", "https://www.instagram.com", "#D62976"),
             CreateOnline(AppSection.SoundCloud, "SoundCloud", "https://soundcloud.com", "#FF5500"),
             CreateOnline(AppSection.Twitch, "Twitch", "https://www.twitch.tv", "#9146FF"),
-            CreateOnline(AppSection.VtvGo, "VTV Go", "https://vtvgo.vn", "#10B981"),
             CreateOnline(AppSection.WebBrowser, "Tìm kiếm Google", "https://www.google.com", "#4285F4")
         ];
 
@@ -78,8 +83,8 @@ public sealed partial class HomeViewModel : ObservableObject
     {
         var baseColor = (Color)ColorConverter.ConvertFromString(hex);
         var brush = new RadialGradientBrush();
-        brush.GradientStops.Add(new GradientStop(Color.FromArgb(115, baseColor.R, baseColor.G, baseColor.B), 0.0));
-        brush.GradientStops.Add(new GradientStop(Color.FromArgb(40, baseColor.R, baseColor.G, baseColor.B), 0.52));
+        brush.GradientStops.Add(new GradientStop(Color.FromArgb(100, baseColor.R, baseColor.G, baseColor.B), 0.0));
+        brush.GradientStops.Add(new GradientStop(Color.FromArgb(32, baseColor.R, baseColor.G, baseColor.B), 0.55));
         brush.GradientStops.Add(new GradientStop(Color.FromArgb(0, baseColor.R, baseColor.G, baseColor.B), 1.0));
         brush.Freeze();
         return brush;

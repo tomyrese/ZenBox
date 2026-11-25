@@ -1,4 +1,7 @@
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using ZenBox.Models;
 using ZenBox.ViewModels;
 using ZenBox.Views;
 
@@ -38,8 +41,54 @@ public partial class MainWindow : Window
         }
 
         _backgroundStarted = true;
-        // Sau khi khung hình đầu tiên đã hiện lên màn hình, mới âm thầm làm nóng WebView2 + uBlock và mở cổng điều khiển từ xa
         _viewModel.StartDeferredBackgroundServices();
+    }
+
+    private void OnWindowPreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        // Không can thiệp khi người dùng đang gõ chữ trong ô tìm kiếm
+        if (Keyboard.FocusedElement is TextBox)
+        {
+            return;
+        }
+
+        if (e.Key == Key.BrowserHome || (e.Key == Key.Home && Keyboard.Modifiers == ModifierKeys.Alt))
+        {
+            _viewModel.NavigateHome();
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.BrowserBack)
+        {
+            _viewModel.AppGoBack();
+            e.Handled = true;
+            return;
+        }
+
+        if (_viewModel.ActiveSection == AppSection.MediaPlayer)
+        {
+            switch (e.Key)
+            {
+                case Key.Space:
+                case Key.MediaPlayPause:
+                    _viewModel.MediaPlayerVm.TogglePlayPause();
+                    e.Handled = true;
+                    break;
+                case Key.Left:
+                    _viewModel.MediaPlayerVm.Rewind15Seconds();
+                    e.Handled = true;
+                    break;
+                case Key.Right:
+                    _viewModel.MediaPlayerVm.Forward15Seconds();
+                    e.Handled = true;
+                    break;
+                case Key.Escape:
+                    _viewModel.MediaPlayerVm.BackToLibraryCommand.Execute(null);
+                    e.Handled = true;
+                    break;
+            }
+        }
     }
 
     private void OnMainWindowClosed(object? sender, EventArgs e)

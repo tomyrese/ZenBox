@@ -135,6 +135,7 @@ public partial class FloatingMenuWindow : Window
         _savedBallLeft = Left;
         _savedBallTop = Top;
         _isMenuExpanded = true;
+        _mainVm.SyncLiveSystemVolume();
 
         AssistiveBallContainer.Visibility = Visibility.Collapsed;
         ExpandedMenuOverlay.Opacity = 0;
@@ -216,6 +217,12 @@ public partial class FloatingMenuWindow : Window
     {
         CollapseQuickMenu();
         _mainVm.NavigateHome();
+    }
+
+    private void OnOpenSettingsClick(object sender, RoutedEventArgs e)
+    {
+        CollapseQuickMenu();
+        _mainVm.OpenSettings();
     }
 
     private void OnOpenYouTubeClick(object sender, RoutedEventArgs e)

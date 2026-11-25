@@ -6,11 +6,11 @@ namespace ZenBox.Services;
 
 public static class BrandLogoFactory
 {
-    private static readonly Dictionary<AppSection, ImageSource> Cache = new();
+    private static readonly Dictionary<AppSection, ImageSource> LogoStore = new();
 
     public static ImageSource GetLogo(AppSection section)
     {
-        if (Cache.TryGetValue(section, out var existing))
+        if (LogoStore.TryGetValue(section, out var existing))
         {
             return existing;
         }
@@ -22,10 +22,14 @@ public static class BrandLogoFactory
             AppSection.Spotify => CreateSpotifyLogo(),
             AppSection.TikTok => CreateTikTokLogo(),
             AppSection.Facebook => CreateFacebookLogo(),
+            AppSection.FptPlay => CreateFptPlayLogo(),
+            AppSection.VtvGo => CreateVtvLogo(),
+            AppSection.ZingMp3 => CreateZingMp3Logo(),
+            AppSection.AppleMusic => CreateAppleMusicLogo(),
+            AppSection.PrimeVideo => CreatePrimeVideoLogo(),
             AppSection.Instagram => CreateInstagramLogo(),
             AppSection.SoundCloud => CreateSoundCloudLogo(),
             AppSection.Twitch => CreateTwitchLogo(),
-            AppSection.VtvGo => CreateVtvLogo(),
             AppSection.WebBrowser => CreateGoogleLogo(),
             AppSection.OfflineMovies => CreateMoviesLogo(),
             AppSection.OfflineMusic => CreateMusicLogo(),
@@ -33,14 +37,13 @@ public static class BrandLogoFactory
             _ => CreateYouTubeLogo()
         };
 
-        Cache[section] = created;
+        LogoStore[section] = created;
         return created;
     }
 
     private static DrawingGroup CreateCanvas()
     {
         var group = new DrawingGroup();
-        // Khung định vị trong suốt 96x96 để mọi logo luôn giữ tỷ lệ chuẩn ở chính giữa mà không có viền màu bao ngoài
         group.Children.Add(new GeometryDrawing(
             Brushes.Transparent,
             null,
@@ -90,12 +93,10 @@ public static class BrandLogoFactory
     private static ImageSource CreateNetflixLogo()
     {
         var g = CreateCanvas();
-        // Hai cột dọc đỏ thẫm
         g.Children.Add(new GeometryDrawing(
             Solid("#B1060F"),
             null,
             Geometry.Parse("M 22,10 L 37,10 L 37,86 L 22,84 Z M 59,10 L 74,10 L 74,84 L 59,86 Z")));
-        // Dải lụa chéo đỏ tươi đặc trưng của Netflix
         g.Children.Add(new GeometryDrawing(
             Grad("#FF1E27", "#E50914", 0, 0, 0.8, 1),
             null,
@@ -159,6 +160,84 @@ public static class BrandLogoFactory
         return Finalize(g);
     }
 
+    private static ImageSource CreateFptPlayLogo()
+    {
+        var g = CreateCanvas();
+        // Biểu tượng ngọn lửa tam sắc Play đặc trưng của FPT Play (Cam - Xanh lá - Xanh dương)
+        g.Children.Add(new GeometryDrawing(
+            Grad("#FF7A00", "#FF4D00"),
+            null,
+            Geometry.Parse("M 22,16 C 22,12 27,10 31,12 L 80,42 C 84,45 84,51 80,54 L 54,70 L 22,42 Z")));
+        g.Children.Add(new GeometryDrawing(
+            Grad("#00C853", "#009624"),
+            null,
+            Geometry.Parse("M 22,42 L 54,70 L 31,84 C 27,86 22,84 22,80 Z")));
+        g.Children.Add(new GeometryDrawing(
+            Grad("#2979FF", "#0D47A1"),
+            null,
+            Geometry.Parse("M 22,28 L 48,48 L 22,68 Z")));
+        return Finalize(g);
+    }
+
+    private static ImageSource CreateVtvLogo()
+    {
+        var g = CreateCanvas();
+        g.Children.Add(new GeometryDrawing(
+            Grad("#FF3B30", "#DC2626"),
+            null,
+            Geometry.Parse("M 7,28 L 18,28 L 24,55 L 31,28 L 41,28 L 28,68 L 19,68 Z")));
+        g.Children.Add(new GeometryDrawing(
+            Grad("#10B981", "#059669"),
+            null,
+            Geometry.Parse("M 37,28 L 62,28 L 60,37 L 53,37 L 47,68 L 37,68 L 43,37 L 35,37 Z")));
+        g.Children.Add(new GeometryDrawing(
+            Grad("#38BDF8", "#2563EB"),
+            null,
+            Geometry.Parse("M 58,28 L 69,28 L 74,55 L 81,28 L 91,28 L 78,68 L 69,68 Z")));
+        return Finalize(g);
+    }
+
+    private static ImageSource CreateZingMp3Logo()
+    {
+        var g = CreateCanvas();
+        var ringPen = new Pen(Grad("#A855F7", "#06B6D4"), 8.5);
+        ringPen.Freeze();
+        g.Children.Add(new GeometryDrawing(null, ringPen, new EllipseGeometry(new Point(48, 48), 35, 35)));
+        g.Children.Add(new GeometryDrawing(
+            Grad("#EC4899", "#8B5CF6"),
+            null,
+            Geometry.Parse("M 34,33 L 64,33 L 64,41 L 44,57 L 65,57 L 65,65 L 32,65 L 32,57 L 52,41 L 34,41 Z")));
+        return Finalize(g);
+    }
+
+    private static ImageSource CreateAppleMusicLogo()
+    {
+        var g = CreateCanvas();
+        var coralGrad = Grad("#FA233B", "#FB5C74", 0, 1, 1, 0);
+        g.Children.Add(new GeometryDrawing(
+            coralGrad,
+            null,
+            Geometry.Parse("M 36,68 C 36,75.2 30.2,81 23,81 C 15.8,81 10,75.2 10,68 C 10,60.8 15.8,55 23,55 C 25.8,55 28.4,55.9 30.5,57.4 L 30.5,24 L 78,14 L 78,60 C 78,67.2 72.2,73 65,73 C 57.8,73 52,67.2 52,60 C 52,52.8 57.8,47 65,47 C 67.8,47 70.4,47.9 72.5,49.4 L 72.5,27.5 L 36,35.2 Z")));
+        return Finalize(g);
+    }
+
+    private static ImageSource CreatePrimeVideoLogo()
+    {
+        var g = CreateCanvas();
+        var cyan = Grad("#00A8E1", "#38BDF8");
+        var smilePen = new Pen(cyan, 6.2) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
+        smilePen.Freeze();
+
+        // Biểu tượng nút Play kết hợp nụ cười mũi tên xanh ngọc đặc trưng của Prime Video
+        g.Children.Add(new GeometryDrawing(
+            Solid("#FFFFFF"),
+            null,
+            Geometry.Parse("M 36,22 L 66,40 L 36,58 Z")));
+        g.Children.Add(new GeometryDrawing(null, smilePen, Geometry.Parse("M 18,64 C 36,78 60,78 78,63")));
+        g.Children.Add(new GeometryDrawing(cyan, null, Geometry.Parse("M 70,58 L 84,60 L 79,73 Z")));
+        return Finalize(g);
+    }
+
     private static ImageSource CreateInstagramLogo()
     {
         var g = CreateCanvas();
@@ -188,12 +267,10 @@ public static class BrandLogoFactory
         var g = CreateCanvas();
         var orange = Grad("#FF7700", "#FF3300", 0, 0, 0, 1);
 
-        // Các thanh sóng âm bên trái
         var barPen = new Pen(orange, 4.6) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
         barPen.Freeze();
         g.Children.Add(new GeometryDrawing(null, barPen, Geometry.Parse("M 11,52 L 11,64 M 19,42 L 19,65 M 27,36 L 27,65 M 35,30 L 35,65")));
 
-        // Đám mây bên phải
         g.Children.Add(new GeometryDrawing(
             orange,
             null,
@@ -216,25 +293,6 @@ public static class BrandLogoFactory
             Solid("#9146FF"),
             null,
             Geometry.Parse("M 43,31 L 50,31 L 50,49 L 43,49 Z M 58,31 L 65,31 L 65,49 L 58,49 Z")));
-        return Finalize(g);
-    }
-
-    private static ImageSource CreateVtvLogo()
-    {
-        var g = CreateCanvas();
-        // Chữ V đỏ - T xanh lá - V xanh dương đặc trưng truyền hình Việt Nam
-        g.Children.Add(new GeometryDrawing(
-            Grad("#FF3B30", "#DC2626"),
-            null,
-            Geometry.Parse("M 7,28 L 18,28 L 24,55 L 31,28 L 41,28 L 28,68 L 19,68 Z")));
-        g.Children.Add(new GeometryDrawing(
-            Grad("#10B981", "#059669"),
-            null,
-            Geometry.Parse("M 37,28 L 62,28 L 60,37 L 53,37 L 47,68 L 37,68 L 43,37 L 35,37 Z")));
-        g.Children.Add(new GeometryDrawing(
-            Grad("#38BDF8", "#2563EB"),
-            null,
-            Geometry.Parse("M 58,28 L 69,28 L 74,55 L 81,28 L 91,28 L 78,68 L 69,68 Z")));
         return Finalize(g);
     }
 
@@ -280,12 +338,10 @@ public static class BrandLogoFactory
         var arcPen = new Pen(musicGrad, 7.5) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
         arcPen.Freeze();
 
-        // Vòm tai nghe Studio
         g.Children.Add(new GeometryDrawing(null, arcPen, Geometry.Parse("M 18,54 L 18,46 A 30,30 0 0 1 78,46 L 78,54")));
         g.Children.Add(new GeometryDrawing(musicGrad, null, new RectangleGeometry(new Rect(12, 48, 14, 28), 7, 7)));
         g.Children.Add(new GeometryDrawing(musicGrad, null, new RectangleGeometry(new Rect(70, 48, 14, 28), 7, 7)));
 
-        // Sóng nhạc trung tâm
         var wavePen = new Pen(Solid("#38BDF8"), 5.0) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round };
         wavePen.Freeze();
         g.Children.Add(new GeometryDrawing(null, wavePen, Geometry.Parse("M 37,56 L 37,68 M 48,46 L 48,76 M 59,53 L 59,70")));

@@ -9,76 +9,145 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- Thanh tiêu đề kho Phim / Nhạc -->
-        <Grid Grid.Row="0" Margin="56,28,56,12" ClipToBounds="False">
+        <!-- Thanh tiêu đề + Tìm kiếm tức thì + Nút thao tác -->
+        <Grid Grid.Row="0" Margin="52,26,52,14" ClipToBounds="False">
             <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,24,0">
-                <TextBlock Text="{Binding HeaderTitle}"
-                           FontSize="36"
-                           FontWeight="Bold"
-                           Foreground="{StaticResource TextPrimaryBrush}"
-                           Margin="0,0,0,6" />
+            <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,28,0">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding HeaderTitle}"
+                               FontSize="34"
+                               FontWeight="Bold"
+                               Foreground="{StaticResource TextPrimaryBrush}"
+                               Margin="0,0,16,0" />
+                    <Border Background="#2038BDF8"
+                            BorderBrush="#4438BDF8"
+                            BorderThickness="1"
+                            CornerRadius="14"
+                            Padding="14,4"
+                            VerticalAlignment="Center">
+                        <TextBlock Text="{Binding ItemCountText}"
+                                   FontSize="18"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource AccentCyanBrush}" />
+                    </Border>
+                </StackPanel>
                 <TextBlock Text="{Binding CurrentFolderDisplay}"
                            FontSize="18"
                            Foreground="{StaticResource TextSecondaryBrush}"
-                           TextTrimming="CharacterEllipsis" />
+                           TextTrimming="CharacterEllipsis"
+                           MaxWidth="520"
+                           Margin="0,4,0,0" />
             </StackPanel>
 
-            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" ClipToBounds="False">
+            <!-- Ô tìm kiếm nhanh phim / bài hát -->
+            <Border Grid.Column="1"
+                    MaxWidth="420"
+                    Height="54"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    Background="#16FFFFFF"
+                    BorderBrush="{StaticResource LiquidGlassRimBrush}"
+                    BorderThickness="1.2"
+                    CornerRadius="27"
+                    Padding="20,0"
+                    Margin="0,0,18,0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Path Grid.Column="0"
+                          Data="{StaticResource IconSearchGeometry}"
+                          Fill="{StaticResource TextSecondaryBrush}"
+                          Stretch="Uniform"
+                          Width="20"
+                          Height="20"
+                          Margin="0,0,12,0"
+                          VerticalAlignment="Center" />
+                    <Grid Grid.Column="1">
+                        <TextBlock Text="Tìm nhanh tên phim / bài hát..."
+                                   FontSize="18"
+                                   Foreground="#7794A3B8"
+                                   VerticalAlignment="Center"
+                                   IsHitTestVisible="False">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding SearchKeyword}" Value="">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <TextBox Text="{Binding SearchKeyword, UpdateSourceTrigger=PropertyChanged}"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 Foreground="{StaticResource TextPrimaryBrush}"
+                                 CaretBrush="{StaticResource AccentCyanBrush}"
+                                 FontSize="18"
+                                 VerticalContentAlignment="Center" />
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" ClipToBounds="False">
                 <Button Style="{StaticResource GlassActionButtonStyle}"
                         Command="{Binding RefreshLibraryCommand}"
-                        MinHeight="58"
-                        Margin="0,0,16,0">
+                        MinHeight="54"
+                        Margin="0,0,14,0">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <Path Data="{StaticResource IconRefreshGeometry}"
                               Fill="{StaticResource TextPrimaryBrush}"
                               Stretch="Uniform"
-                              Width="20"
-                              Height="20"
-                              Margin="0,0,10,0"
+                              Width="18"
+                              Height="18"
+                              Margin="0,0,8,0"
                               VerticalAlignment="Center" />
-                        <TextBlock Text="Quét lại danh sách" FontSize="19" VerticalAlignment="Center" />
+                        <TextBlock Text="Quét lại" FontSize="18" VerticalAlignment="Center" />
                     </StackPanel>
                 </Button>
 
                 <Button Style="{StaticResource GlassActionButtonStyle}"
                         Command="{Binding OpenConfigCommand}"
-                        MinHeight="58"
-                        Margin="0,0,16,0">
+                        MinHeight="54"
+                        Margin="0,0,14,0">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <Path Data="{StaticResource IconFolderGeometry}"
                               Fill="{StaticResource AccentCyanBrush}"
                               Stretch="Uniform"
-                              Width="20"
-                              Height="20"
-                              Margin="0,0,10,0"
+                              Width="18"
+                              Height="18"
+                              Margin="0,0,8,0"
                               VerticalAlignment="Center" />
-                        <TextBlock Text="Chọn thư mục khác" FontSize="19" VerticalAlignment="Center" />
+                        <TextBlock Text="Đổi thư mục" FontSize="18" VerticalAlignment="Center" />
                     </StackPanel>
                 </Button>
 
                 <Button Style="{StaticResource PrimaryCyanButtonStyle}"
                         Command="{Binding GoHomeCommand}"
-                        MinHeight="58">
+                        MinHeight="54">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <Path Data="{StaticResource IconHomeGeometry}"
                               Fill="#FFFFFF"
                               Stretch="Uniform"
-                              Width="20"
-                              Height="20"
-                              Margin="0,0,10,0"
+                              Width="18"
+                              Height="18"
+                              Margin="0,0,8,0"
                               VerticalAlignment="Center" />
-                        <TextBlock Text="Về Trang Chủ" FontSize="19" VerticalAlignment="Center" />
+                        <TextBlock Text="Trang Chủ" FontSize="18" VerticalAlignment="Center" />
                     </StackPanel>
                 </Button>
             </StackPanel>
         </Grid>
 
-        <!-- Trạng thái đang quét -->
+        <!-- Đang quét -->
         <Border Grid.Row="1"
                 Style="{StaticResource GlassPanelBorderStyle}"
                 Padding="44"
@@ -86,31 +155,27 @@
                 VerticalAlignment="Center"
                 Visibility="{Binding IsScanning, Converter={StaticResource BoolToVis}}">
             <TextBlock Text="Đang quét tìm phim và bài hát trong máy, vui lòng đợi giây lát..."
-                       FontSize="24"
+                       FontSize="22"
                        FontWeight="SemiBold"
                        Foreground="{StaticResource AccentCyanBrush}" />
         </Border>
 
-        <!-- Trạng thái thư mục trống -->
+        <!-- Thư mục trống -->
         <Border Grid.Row="1"
                 Style="{StaticResource GlassPanelBorderStyle}"
-                MaxWidth="760"
+                MaxWidth="740"
                 Padding="48"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
                 Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVis}}">
             <StackPanel HorizontalAlignment="Center">
-                <Grid Width="80" Height="80" HorizontalAlignment="Center" Margin="0,0,0,22">
-                    <Ellipse Fill="{StaticResource CyanAmbientBloomBrush}" Margin="-12" />
-                    <Border CornerRadius="24" Background="{StaticResource AccentCyanSoftBrush}" BorderBrush="#5538BDF8" BorderThickness="1.5" />
-                    <Path Data="{StaticResource IconFolderGeometry}"
-                          Fill="{StaticResource AccentCyanBrush}"
-                          Stretch="Uniform"
-                          Width="36"
-                          Height="36"
-                          HorizontalAlignment="Center"
-                          VerticalAlignment="Center" />
-                </Grid>
+                <Path Data="{StaticResource IconFolderGeometry}"
+                      Fill="{StaticResource AccentCyanBrush}"
+                      Stretch="Uniform"
+                      Width="52"
+                      Height="52"
+                      HorizontalAlignment="Center"
+                      Margin="0,0,0,20" />
                 <TextBlock Text="{Binding EmptyStateMessage}"
                            FontSize="22"
                            Foreground="{StaticResource TextPrimaryBrush}"
@@ -121,28 +186,28 @@
                 <Button Style="{StaticResource PrimaryCyanButtonStyle}"
                         Command="{Binding OpenConfigCommand}"
                         HorizontalAlignment="Center"
-                        MinHeight="62"
-                        Padding="34,12">
+                        MinHeight="60"
+                        Padding="32,12">
                     <StackPanel Orientation="Horizontal">
                         <Path Data="{StaticResource IconFolderGeometry}"
                               Fill="#FFFFFF"
                               Stretch="Uniform"
-                              Width="22"
-                              Height="22"
-                              Margin="0,0,12,0"
+                              Width="20"
+                              Height="20"
+                              Margin="0,0,10,0"
                               VerticalAlignment="Center" />
-                        <TextBlock Text="Mở Cài đặt để chọn thư mục" FontSize="21" VerticalAlignment="Center" />
+                        <TextBlock Text="Mở Cài đặt để chọn thư mục" FontSize="20" VerticalAlignment="Center" />
                     </StackPanel>
                 </Button>
             </StackPanel>
         </Border>
 
-        <!-- Lưới Poster Phim & Nhạc: Khoảng đệm Margin nằm BÊN TRONG ScrollViewer để thẻ đầu tiên khi phóng to 1.045x + nhấc lên 6px KHÔNG BAO GIỜ BỊ CẮT CẠNH -->
+        <!-- Lưới Poster Phim & Nhạc -->
         <ScrollViewer Grid.Row="1"
                       VerticalScrollBarVisibility="Auto"
                       HorizontalScrollBarVisibility="Disabled">
             <ItemsControl ItemsSource="{Binding MediaItems}"
-                          Margin="56,20,40,36"
+                          Margin="52,20,36,36"
                           ClipToBounds="False">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
@@ -154,20 +219,20 @@
                         <Button Style="{StaticResource GlassTileButtonStyle}"
                                 Command="{Binding DataContext.PlayItemCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                 CommandParameter="{Binding}"
-                                Width="340"
-                                Height="312"
+                                Width="336"
+                                Height="308"
                                 Padding="18">
                             <Grid>
                                 <Grid.RowDefinitions>
-                                    <RowDefinition Height="190" />
+                                    <RowDefinition Height="188" />
                                     <RowDefinition Height="*" />
                                 </Grid.RowDefinitions>
 
                                 <Grid Grid.Row="0" Margin="0,0,0,14">
                                     <Border CornerRadius="20"
                                             ClipToBounds="True"
-                                            Background="#1EFFFFFF"
-                                            BorderBrush="#2EFFFFFF"
+                                            Background="#18FFFFFF"
+                                            BorderBrush="#2AFFFFFF"
                                             BorderThickness="1">
                                         <Image Source="{Binding CoverImage}"
                                                Stretch="UniformToFill"
@@ -175,18 +240,15 @@
                                                VerticalAlignment="Center" />
                                     </Border>
 
-                                    <!-- Nút Play Liquid Glass nổi góc dưới bên phải Poster -->
-                                    <Grid Width="50"
-                                          Height="50"
+                                    <Grid Width="48"
+                                          Height="48"
                                           HorizontalAlignment="Right"
                                           VerticalAlignment="Bottom"
                                           Margin="12">
-                                        <Border CornerRadius="25"
-                                                Background="#CC0B1120"
+                                        <Border CornerRadius="24"
+                                                Background="#CC080D1A"
                                                 BorderBrush="#88FFFFFF"
                                                 BorderThickness="1.4" />
-                                        <Border CornerRadius="25"
-                                                Background="{StaticResource LiquidTopSheenBrush}" />
                                         <Path Data="{StaticResource IconPlayGeometry}"
                                               Fill="#FFFFFF"
                                               Stretch="Uniform"
@@ -204,7 +266,7 @@
                                                FontWeight="SemiBold"
                                                Foreground="{StaticResource TextPrimaryBrush}"
                                                TextTrimming="CharacterEllipsis"
-                                               Margin="0,0,0,6" />
+                                               Margin="0,0,0,5" />
                                     <TextBlock Text="{Binding SubInfoText}"
                                                FontSize="18"
                                                Foreground="{StaticResource TextSecondaryBrush}"

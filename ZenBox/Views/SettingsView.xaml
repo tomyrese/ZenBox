@@ -3,173 +3,449 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              FontFamily="{StaticResource PrimaryFontFamily}">
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto"
-                  HorizontalScrollBarVisibility="Disabled">
-        <StackPanel MaxWidth="1160"
-                    HorizontalAlignment="Left"
-                    Margin="56,30,56,36"
-                    ClipToBounds="False">
-            <!-- Tiêu đề màn hình -->
-            <Grid Margin="0,0,0,28" ClipToBounds="False">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <StackPanel Grid.Column="0" Margin="0,0,24,0">
-                    <TextBlock Text="Cài đặt hệ thống"
-                               FontSize="36"
-                               FontWeight="Bold"
-                               Foreground="{StaticResource TextPrimaryBrush}"
-                               Margin="0,0,0,6" />
-                    <TextBlock Text="Chọn nơi lưu trữ phim nhạc trong máy và thiết lập tự động mở cùng Windows 11"
-                               FontSize="19"
-                               Foreground="{StaticResource TextSecondaryBrush}" />
-                </StackPanel>
-                <Button Grid.Column="1"
-                        Style="{StaticResource PrimaryCyanButtonStyle}"
-                        Command="{Binding GoHomeCommand}"
-                        MinHeight="58"
-                        VerticalAlignment="Center">
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <Path Data="{StaticResource IconHomeGeometry}"
-                              Fill="#FFFFFF"
-                              Stretch="Uniform"
-                              Width="20"
-                              Height="20"
-                              Margin="0,0,10,0"
-                              VerticalAlignment="Center" />
-                        <TextBlock Text="Về Trang Chủ" FontSize="19" VerticalAlignment="Center" />
-                    </StackPanel>
-                </Button>
-            </Grid>
+    <!-- Trung tâm Cài đặt 2 cột chuẩn Smart TV OS hiện đại, lấp đầy cân đối toàn màn hình -->
+    <Grid Margin="52,26,52,24" ClipToBounds="False">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
 
-            <!-- Thông báo xác nhận -->
-            <Border Background="{StaticResource SuccessGreenSoftBrush}"
+        <!-- Tiêu đề trên cùng -->
+        <Grid Grid.Row="0" Margin="0,0,0,22" ClipToBounds="False">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                <TextBlock Text="Trung tâm Cài đặt ZenBox"
+                           FontSize="34"
+                           FontWeight="Bold"
+                           Foreground="{StaticResource TextPrimaryBrush}" />
+                <TextBlock Text="Tinh chỉnh âm thanh EQ, chế độ rạp phim, bảo vệ mắt ban đêm và tối ưu hiệu suất hệ thống"
+                           FontSize="18"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           Margin="0,4,0,0" />
+            </StackPanel>
+
+            <!-- Thông báo xác nhận nổi gọn bên phải -->
+            <Border Grid.Column="1"
+                    Background="{StaticResource SuccessGreenSoftBrush}"
                     BorderBrush="#6634D399"
-                    BorderThickness="1.5"
-                    CornerRadius="22"
-                    Padding="24,16"
-                    Margin="0,0,0,24"
+                    BorderThickness="1.2"
+                    CornerRadius="20"
+                    Padding="20,10"
+                    Margin="0,0,18,0"
+                    VerticalAlignment="Center"
                     Visibility="{Binding HasStatusMessage, Converter={StaticResource BoolToVis}}">
                 <TextBlock Text="{Binding StatusMessage}"
-                           FontSize="20"
+                           FontSize="18"
                            FontWeight="SemiBold"
                            Foreground="{StaticResource SuccessGreenBrush}" />
             </Border>
 
-            <!-- Mục 1: Thư mục Phim (Dùng Logo thuần không hộp nền ngoài) -->
-            <Grid Margin="0,0,0,22" ClipToBounds="False">
-                <Border Style="{StaticResource GlassPanelBorderStyle}" />
-                <Border Background="{StaticResource LiquidTopSheenBrush}" CornerRadius="28" Margin="1.5" IsHitTestVisible="False" />
-                <Grid Margin="32,28" ClipToBounds="False">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <Path Grid.Column="0"
-                          Data="{StaticResource IconMovieGeometry}"
-                          Fill="#FBBF24"
+            <Button Grid.Column="2"
+                    Style="{StaticResource PrimaryCyanButtonStyle}"
+                    Command="{Binding GoHomeCommand}"
+                    MinHeight="56"
+                    VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Path Data="{StaticResource IconHomeGeometry}"
+                          Fill="#FFFFFF"
                           Stretch="Uniform"
-                          Width="44"
-                          Height="44"
-                          Margin="0,0,24,0"
+                          Width="19"
+                          Height="19"
+                          Margin="0,0,10,0"
                           VerticalAlignment="Center" />
-                    <StackPanel Grid.Column="1" Margin="0,0,24,0" VerticalAlignment="Center">
-                        <TextBlock Text="Thư mục chứa Phim của tôi"
-                                   FontSize="24"
-                                   FontWeight="SemiBold"
-                                   Foreground="{StaticResource TextPrimaryBrush}"
-                                   Margin="0,0,0,6" />
-                        <TextBlock Text="{Binding MoviesFolderPath}"
-                                   FontSize="19"
-                                   Foreground="{StaticResource AccentCyanBrush}"
-                                   TextWrapping="Wrap" />
-                    </StackPanel>
-                    <Button Grid.Column="2"
-                            Style="{StaticResource GlassActionButtonStyle}"
-                            Command="{Binding ChooseMoviesFolderCommand}"
-                            MinHeight="58"
-                            MinWidth="250"
-                            VerticalAlignment="Center">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <Path Data="{StaticResource IconFolderGeometry}"
-                                  Fill="{StaticResource AccentCyanBrush}"
-                                  Stretch="Uniform"
-                                  Width="20"
-                                  Height="20"
-                                  Margin="0,0,10,0"
-                                  VerticalAlignment="Center" />
-                            <TextBlock Text="Chọn thư mục Phim" FontSize="19" VerticalAlignment="Center" />
-                        </StackPanel>
-                    </Button>
-                </Grid>
-            </Grid>
-
-            <!-- Mục 2: Thư mục Nhạc -->
-            <Grid Margin="0,0,0,22" ClipToBounds="False">
-                <Border Style="{StaticResource GlassPanelBorderStyle}" />
-                <Border Background="{StaticResource LiquidTopSheenBrush}" CornerRadius="28" Margin="1.5" IsHitTestVisible="False" />
-                <Grid Margin="32,28" ClipToBounds="False">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <Path Grid.Column="0"
-                          Data="{StaticResource IconMusicGeometry}"
-                          Fill="#C084FC"
-                          Stretch="Uniform"
-                          Width="44"
-                          Height="44"
-                          Margin="0,0,24,0"
-                          VerticalAlignment="Center" />
-                    <StackPanel Grid.Column="1" Margin="0,0,24,0" VerticalAlignment="Center">
-                        <TextBlock Text="Thư mục chứa Nhạc của tôi"
-                                   FontSize="24"
-                                   FontWeight="SemiBold"
-                                   Foreground="{StaticResource TextPrimaryBrush}"
-                                   Margin="0,0,0,6" />
-                        <TextBlock Text="{Binding MusicFolderPath}"
-                                   FontSize="19"
-                                   Foreground="{StaticResource AccentCyanBrush}"
-                                   TextWrapping="Wrap" />
-                    </StackPanel>
-                    <Button Grid.Column="2"
-                            Style="{StaticResource GlassActionButtonStyle}"
-                            Command="{Binding ChooseMusicFolderCommand}"
-                            MinHeight="58"
-                            MinWidth="250"
-                            VerticalAlignment="Center">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <Path Data="{StaticResource IconFolderGeometry}"
-                                  Fill="{StaticResource AccentCyanBrush}"
-                                  Stretch="Uniform"
-                                  Width="20"
-                                  Height="20"
-                                  Margin="0,0,10,0"
-                                  VerticalAlignment="Center" />
-                            <TextBlock Text="Chọn thư mục Nhạc" FontSize="19" VerticalAlignment="Center" />
-                        </StackPanel>
-                    </Button>
-                </Grid>
-            </Grid>
-
-            <!-- Mục 3: Khởi động cùng Windows 11 -->
-            <Grid ClipToBounds="False">
-                <Border Style="{StaticResource GlassPanelBorderStyle}" />
-                <Border Background="{StaticResource LiquidTopSheenBrush}" CornerRadius="28" Margin="1.5" IsHitTestVisible="False" />
-                <StackPanel Margin="32,28">
-                    <TextBlock Text="Khởi động tự động cùng máy tính"
-                               FontSize="24"
-                               FontWeight="SemiBold"
-                               Foreground="{StaticResource TextPrimaryBrush}"
-                               Margin="0,0,0,16" />
-                    <CheckBox Style="{StaticResource LargeSwitchCheckBoxStyle}"
-                              IsChecked="{Binding StartWithWindows, Mode=TwoWay}"
-                              Content="Tự khởi động cùng Windows 11 ngay khi bật nguồn máy tính" />
+                    <TextBlock Text="Về Trang Chủ" FontSize="19" VerticalAlignment="Center" />
                 </StackPanel>
-            </Grid>
-        </StackPanel>
-    </ScrollViewer>
+            </Button>
+        </Grid>
+
+        <!-- Khung 2 cột: Thanh danh mục bên trái (330px) + Không gian tinh chỉnh bên phải (*) -->
+        <Grid Grid.Row="1" ClipToBounds="False">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="340" />
+                <ColumnDefinition Width="28" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Cột trái: Thanh điều hướng chuyên mục Crystal Glass -->
+            <Border Grid.Column="0"
+                    Style="{StaticResource GlassPanelBorderStyle}"
+                    Padding="18,22"
+                    VerticalAlignment="Top">
+                <StackPanel ClipToBounds="False">
+                    <Button Command="{Binding SelectCategoryCommand}"
+                            CommandParameter="0"
+                            MinHeight="64"
+                            Margin="0,0,0,12">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource GlassActionButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsAudioCategory}" Value="True">
+                                        <Setter Property="Background" Value="{StaticResource LiquidCyanPillBrush}" />
+                                        <Setter Property="BorderBrush" Value="#88FFFFFF" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                        <StackPanel Orientation="Horizontal" Width="260">
+                            <Path Data="{StaticResource IconEqualizerGeometry}" Fill="#FFFFFF" Stretch="Uniform" Width="22" Height="22" Margin="0,0,14,0" VerticalAlignment="Center" />
+                            <TextBlock Text="Âm thanh &amp; Nghe nhạc" FontSize="19" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button Command="{Binding SelectCategoryCommand}"
+                            CommandParameter="1"
+                            MinHeight="64"
+                            Margin="0,0,0,12">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource GlassActionButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsCinemaCategory}" Value="True">
+                                        <Setter Property="Background" Value="{StaticResource LiquidCyanPillBrush}" />
+                                        <Setter Property="BorderBrush" Value="#88FFFFFF" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                        <StackPanel Orientation="Horizontal" Width="260">
+                            <Path Data="{StaticResource IconMovieGeometry}" Fill="#FFFFFF" Stretch="Uniform" Width="22" Height="22" Margin="0,0,14,0" VerticalAlignment="Center" />
+                            <TextBlock Text="Hình ảnh &amp; Xem phim" FontSize="19" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button Command="{Binding SelectCategoryCommand}"
+                            CommandParameter="2"
+                            MinHeight="64"
+                            Margin="0,0,0,12">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource GlassActionButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsPerformanceCategory}" Value="True">
+                                        <Setter Property="Background" Value="{StaticResource LiquidCyanPillBrush}" />
+                                        <Setter Property="BorderBrush" Value="#88FFFFFF" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                        <StackPanel Orientation="Horizontal" Width="260">
+                            <Path Data="{StaticResource IconBoltGeometry}" Fill="#FFFFFF" Stretch="Uniform" Width="22" Height="22" Margin="0,0,14,0" VerticalAlignment="Center" />
+                            <TextBlock Text="Ứng dụng &amp; Hiệu suất" FontSize="19" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button Command="{Binding SelectCategoryCommand}"
+                            CommandParameter="3"
+                            MinHeight="64">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource GlassActionButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsSystemCategory}" Value="True">
+                                        <Setter Property="Background" Value="{StaticResource LiquidCyanPillBrush}" />
+                                        <Setter Property="BorderBrush" Value="#88FFFFFF" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                        <StackPanel Orientation="Horizontal" Width="260">
+                            <Path Data="{StaticResource IconSlidersGeometry}" Fill="#FFFFFF" Stretch="Uniform" Width="22" Height="22" Margin="0,0,14,0" VerticalAlignment="Center" />
+                            <TextBlock Text="Thư viện &amp; Hệ thống" FontSize="19" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Border>
+
+            <!-- Cột phải: Nội dung chi tiết từng chuyên mục -->
+            <ScrollViewer Grid.Column="2"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled">
+                <Grid Margin="6,2,14,28" ClipToBounds="False">
+
+                    <!-- CHUYÊN MỤC 0: ÂM THANH & NGHE NHẠC -->
+                    <StackPanel Visibility="{Binding IsAudioCategory, Converter={StaticResource BoolToVis}}" ClipToBounds="False">
+                        <Border Style="{StaticResource GlassPanelBorderStyle}" Padding="30,24" Margin="0,0,0,22">
+                            <StackPanel>
+                                <Grid Margin="0,0,0,16">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="Âm lượng tổng loa máy tính / TV" FontSize="23" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" />
+                                        <TextBlock Text="Điều chỉnh trực tiếp mức âm lượng đầu ra của Windows 11" FontSize="18" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0" />
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding MasterVolumePercent, StringFormat='{}{0}%'}"
+                                               FontSize="28"
+                                               FontWeight="Bold"
+                                               Foreground="{StaticResource AccentCyanBrush}"
+                                               VerticalAlignment="Center" />
+                                </Grid>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Button Grid.Column="0"
+                                            Style="{StaticResource GlassActionButtonStyle}"
+                                            Command="{Binding ToggleMuteCommand}"
+                                            MinWidth="150"
+                                            Margin="0,0,20,0">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Path Data="{StaticResource IconMuteGeometry}" Fill="{StaticResource WarningCoralBrush}" Stretch="Uniform" Width="20" Height="20" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                            <TextBlock Text="Tắt tiếng" FontSize="18" VerticalAlignment="Center" />
+                                        </StackPanel>
+                                    </Button>
+                                    <Slider Grid.Column="1"
+                                            Style="{StaticResource ModernMediaSliderStyle}"
+                                            Minimum="0"
+                                            Maximum="100"
+                                            Value="{Binding MasterVolumePercent, Mode=TwoWay}"
+                                            IsMoveToPointEnabled="True"
+                                            VerticalAlignment="Center" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <TextBlock Text="Bộ cân bằng âm thanh 10 dải tần (Áp dụng cho cả Phim/Nhạc Offline &amp; YouTube/Spotify)"
+                                   FontSize="20"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   Margin="4,0,0,16" />
+
+                        <ItemsControl ItemsSource="{Binding SoundPresets}" ClipToBounds="False">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid Columns="2" ClipToBounds="False" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Command="{Binding DataContext.SelectSoundPresetCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding}"
+                                            Margin="0,0,18,18"
+                                            Padding="24,20"
+                                            HorizontalContentAlignment="Left">
+                                        <Button.Style>
+                                            <Style TargetType="Button" BasedOn="{StaticResource GlassActionButtonStyle}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                        <Setter Property="Background" Value="#2E38BDF8" />
+                                                        <Setter Property="BorderBrush" Value="{StaticResource AccentCyanBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Title}" FontSize="22" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,6" />
+                                            <TextBlock Text="{Binding Description}" FontSize="18" FontWeight="Regular" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
+                    <!-- CHUYÊN MỤC 1: HÌNH ẢNH & XEM PHIM -->
+                    <StackPanel Visibility="{Binding IsCinemaCategory, Converter={StaticResource BoolToVis}}" ClipToBounds="False">
+                        <!-- Lọc ánh sáng xanh ban đêm -->
+                        <Border Style="{StaticResource GlassPanelBorderStyle}" Padding="30,24" Margin="0,0,0,20">
+                            <StackPanel>
+                                <TextBlock Text="Chế độ Bảo vệ mắt ban đêm (Lọc ánh sáng xanh)" FontSize="23" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" />
+                                <TextBlock Text="{Binding CurrentEyeCareLabel, StringFormat='Trạng thái hiện tại: {0}'}" FontSize="18" Foreground="{StaticResource AccentCyanBrush}" Margin="0,4,0,18" />
+                                <UniformGrid Columns="3" Margin="-6,0,-6,0" ClipToBounds="False">
+                                    <Button Content="Tắt (Màu chuẩn)" Style="{StaticResource GlassActionButtonStyle}" Command="{Binding SetEyeCareModeCommand}" CommandParameter="Off" Margin="6,0" />
+                                    <Button Content="Ấm dịu nhẹ" Style="{StaticResource GlassActionButtonStyle}" Command="{Binding SetEyeCareModeCommand}" CommandParameter="WarmSoft" Margin="6,0" />
+                                    <Button Content="Ấm sâu ban đêm" Style="{StaticResource PrimaryCyanButtonStyle}" Command="{Binding SetEyeCareModeCommand}" CommandParameter="DeepNight" Margin="6,0" />
+                                </UniformGrid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Tỷ lệ khung hình mặc định -->
+                        <Border Style="{StaticResource GlassPanelBorderStyle}" Padding="30,24" Margin="0,0,0,20">
+                            <StackPanel>
+                                <TextBlock Text="Tỷ lệ khung hình phát phim mặc định" FontSize="23" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" />
+                                <TextBlock Text="{Binding CurrentAspectDisplay, StringFormat='Đang chọn: {0}'}" FontSize="18" Foreground="{StaticResource AccentCyanBrush}" Margin="0,4,0,18" />
+                                <UniformGrid Columns="3" Margin="-6,0,-6,0" ClipToBounds="False">
+                                    <Button Content="Khung hình gốc" Style="{StaticResource GlassActionButtonStyle}" Command="{Binding SetAspectRatioCommand}" CommandParameter="AUTO" Margin="6,0" />
+                                    <Button Content="Tràn TV 16:9" Style="{StaticResource GlassActionButtonStyle}" Command="{Binding SetAspectRatioCommand}" CommandParameter="16:9" Margin="6,0" />
+                                    <Button Content="Điện ảnh 21:9" Style="{StaticResource GlassActionButtonStyle}" Command="{Binding SetAspectRatioCommand}" CommandParameter="21:9" Margin="6,0" />
+                                </UniformGrid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Tốc độ phát & Tự động xem tiếp -->
+                        <Border Style="{StaticResource GlassPanelBorderStyle}" Padding="30,24">
+                            <StackPanel>
+                                <TextBlock Text="Tốc độ phát phim mặc định" FontSize="23" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" />
+                                <TextBlock Text="{Binding CurrentSpeedDisplay, StringFormat='Đang chọn: {0}'}" FontSize="18" Foreground="{StaticResource AccentCyanBrush}" Margin="0,4,0,16" />
+                                <UniformGrid Columns="4" Margin="-6,0,-6,24" ClipToBounds="False">
+                                    <Button Content="0.75x Chậm" Style="{StaticResource GlassActionButtonStyle}" Command="{Binding SetPlaybackSpeedCommand}" CommandParameter="0.75" Margin="6,0" />
+                                    <Button Content="1.0x Chuẩn" Style="{StaticResource GlassActionButtonStyle}" Command="{Binding SetPlaybackSpeedCommand}" CommandParameter="1.0" Margin="6,0" />
+                                    <Button Content="1.25x Nhanh" Style="{StaticResource GlassActionButtonStyle}" Command="{Binding SetPlaybackSpeedCommand}" CommandParameter="1.25" Margin="6,0" />
+                                    <Button Content="1.5x Nhanh" Style="{StaticResource GlassActionButtonStyle}" Command="{Binding SetPlaybackSpeedCommand}" CommandParameter="1.5" Margin="6,0" />
+                                </UniformGrid>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <CheckBox Grid.Column="0"
+                                              Style="{StaticResource LargeSwitchCheckBoxStyle}"
+                                              IsChecked="{Binding AutoResumeVideos, Mode=TwoWay}"
+                                              Content="Tự động mở tiếp đúng phút đang xem dở lần trước" />
+                                    <Button Grid.Column="1"
+                                            Content="Xóa lịch sử xem dở"
+                                            Style="{StaticResource GlassActionButtonStyle}"
+                                            Command="{Binding ClearResumeHistoryCommand}" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- CHUYÊN MỤC 2: ỨNG DỤNG & HIỆU SUẤT -->
+                    <StackPanel Visibility="{Binding IsPerformanceCategory, Converter={StaticResource BoolToVis}}" ClipToBounds="False">
+                        <Border Style="{StaticResource GlassPanelBorderStyle}" Padding="30,24" Margin="0,0,0,20">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                    <TextBlock Text="Trạng thái bộ nhớ hệ thống thực tế" FontSize="23" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" />
+                                    <TextBlock Text="{Binding ActiveBackgroundAppsText}" FontSize="18" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,0" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding RamUsageText}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource SuccessGreenBrush}" VerticalAlignment="Center" Margin="0,0,20,0" />
+                                    <Button Content="Giải phóng RAM ngay"
+                                            Style="{StaticResource PrimaryCyanButtonStyle}"
+                                            Command="{Binding FreeMemoryNowCommand}" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{StaticResource GlassPanelBorderStyle}" Padding="30,24" Margin="0,0,0,20">
+                            <StackPanel>
+                                <CheckBox Style="{StaticResource LargeSwitchCheckBoxStyle}"
+                                          IsChecked="{Binding SmartMemorySaver, Mode=TwoWay}"
+                                          Content="Tiết kiệm RAM thông minh (Hạ tiêu thụ bộ nhớ ứng dụng chạy ngầm)"
+                                          Margin="0,0,0,22" />
+
+                                <TextBlock Text="{Binding MaxCachedWebApps, StringFormat='Số lượng ứng dụng giữ sẵn tối đa để chuyển tức thì: {0} ứng dụng'}"
+                                           FontSize="19"
+                                           Foreground="{StaticResource AccentCyanBrush}"
+                                           Margin="0,0,0,14" />
+
+                                <UniformGrid Columns="4" Margin="-6,0,-6,0" ClipToBounds="False">
+                                    <Button Content="2 ứng dụng (Siêu nhẹ)" Style="{StaticResource GlassActionButtonStyle}" Command="{Binding SetMaxCachedAppsCommand}" CommandParameter="2" Margin="6,0" />
+                                    <Button Content="4 ứng dụng (Khuyên dùng)" Style="{StaticResource GlassActionButtonStyle}" Command="{Binding SetMaxCachedAppsCommand}" CommandParameter="4" Margin="6,0" />
+                                    <Button Content="6 ứng dụng" Style="{StaticResource GlassActionButtonStyle}" Command="{Binding SetMaxCachedAppsCommand}" CommandParameter="6" Margin="6,0" />
+                                    <Button Content="8 ứng dụng" Style="{StaticResource GlassActionButtonStyle}" Command="{Binding SetMaxCachedAppsCommand}" CommandParameter="8" Margin="6,0" />
+                                </UniformGrid>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource GlassPanelBorderStyle}" Padding="30,24">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,20,0">
+                                    <TextBlock Text="Chặn quảng cáo 2 lớp (uBlock Origin + Lọc tên miền)" FontSize="22" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" />
+                                    <TextBlock Text="Đang hoạt động bảo vệ toàn bộ YouTube, TikTok, Facebook và trình duyệt; giữ nguyên tài khoản đăng nhập khi dọn dữ liệu tạm." FontSize="18" Foreground="{StaticResource TextSecondaryBrush}" TextWrapping="Wrap" Margin="0,6,0,0" />
+                                </StackPanel>
+                                <Button Grid.Column="1"
+                                        Content="Dọn tệp tạm trình duyệt"
+                                        Style="{StaticResource GlassActionButtonStyle}"
+                                        Command="{Binding CleanWebTempDataCommand}"
+                                        VerticalAlignment="Center" />
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- CHUYÊN MỤC 3: THƯ VIỆN & HỆ THỐNG -->
+                    <StackPanel Visibility="{Binding IsSystemCategory, Converter={StaticResource BoolToVis}}" ClipToBounds="False">
+                        <Border Style="{StaticResource GlassPanelBorderStyle}" Padding="30,22" Margin="0,0,0,18">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Path Grid.Column="0" Data="{StaticResource IconMovieGeometry}" Fill="#FBBF24" Stretch="Uniform" Width="38" Height="38" Margin="0,0,20,0" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Margin="0,0,20,0" VerticalAlignment="Center">
+                                    <TextBlock Text="Thư mục chứa Phim của tôi" FontSize="22" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
+                                    <TextBlock Text="{Binding MoviesFolderPath}" FontSize="18" Foreground="{StaticResource AccentCyanBrush}" TextWrapping="Wrap" Margin="0,4,0,0" />
+                                </StackPanel>
+                                <Button Grid.Column="2" Content="Chọn thư mục Phim" Style="{StaticResource GlassActionButtonStyle}" Command="{Binding ChooseMoviesFolderCommand}" MinWidth="220" VerticalAlignment="Center" />
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{StaticResource GlassPanelBorderStyle}" Padding="30,22" Margin="0,0,0,18">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Path Grid.Column="0" Data="{StaticResource IconMusicGeometry}" Fill="#C084FC" Stretch="Uniform" Width="38" Height="38" Margin="0,0,20,0" VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Margin="0,0,20,0" VerticalAlignment="Center">
+                                    <TextBlock Text="Thư mục chứa Nhạc của tôi" FontSize="22" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
+                                    <TextBlock Text="{Binding MusicFolderPath}" FontSize="18" Foreground="{StaticResource AccentCyanBrush}" TextWrapping="Wrap" Margin="0,4,0,0" />
+                                </StackPanel>
+                                <Button Grid.Column="2" Content="Chọn thư mục Nhạc" Style="{StaticResource GlassActionButtonStyle}" Command="{Binding ChooseMusicFolderCommand}" MinWidth="220" VerticalAlignment="Center" />
+                            </Grid>
+                        </Border>
+
+                        <!-- Hẹn giờ tự tắt khi ngủ -->
+                        <Border Style="{StaticResource GlassPanelBorderStyle}" Padding="30,22" Margin="0,0,0,18">
+                            <StackPanel>
+                                <TextBlock Text="Hẹn giờ tự nghỉ khi xem buổi tối" FontSize="22" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" />
+                                <TextBlock Text="{Binding SleepTimerStatusText, StringFormat='Trạng thái: {0}'}" FontSize="18" Foreground="#FBBF24" Margin="0,4,0,16" />
+                                <UniformGrid Columns="5" Margin="-6,0,-6,0" ClipToBounds="False">
+                                    <Button Content="Tắt hẹn giờ" Style="{StaticResource GlassActionButtonStyle}" Command="{Binding SetSleepTimerMinutesCommand}" CommandParameter="0" MinWidth="110" Margin="6,0" />
+                                    <Button Content="15 phút" Style="{StaticResource GlassActionButtonStyle}" Command="{Binding SetSleepTimerMinutesCommand}" CommandParameter="15" MinWidth="110" Margin="6,0" />
+                                    <Button Content="30 phút" Style="{StaticResource GlassActionButtonStyle}" Command="{Binding SetSleepTimerMinutesCommand}" CommandParameter="30" MinWidth="110" Margin="6,0" />
+                                    <Button Content="60 phút" Style="{StaticResource GlassActionButtonStyle}" Command="{Binding SetSleepTimerMinutesCommand}" CommandParameter="60" MinWidth="110" Margin="6,0" />
+                                    <Button Content="90 phút" Style="{StaticResource GlassActionButtonStyle}" Command="{Binding SetSleepTimerMinutesCommand}" CommandParameter="90" MinWidth="110" Margin="6,0" />
+                                </UniformGrid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Khởi động cùng Windows & Điều khiển từ xa -->
+                        <Border Style="{StaticResource GlassPanelBorderStyle}" Padding="30,22">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <CheckBox Grid.Column="0"
+                                          Style="{StaticResource LargeSwitchCheckBoxStyle}"
+                                          IsChecked="{Binding StartWithWindows, Mode=TwoWay}"
+                                          Content="Tự khởi động cùng Windows 11 khi bật nguồn" />
+                                <Border Grid.Column="1"
+                                        Background="#18FFFFFF"
+                                        BorderBrush="#30FFFFFF"
+                                        BorderThickness="1"
+                                        CornerRadius="18"
+                                        Padding="18,10"
+                                        VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding RemoteEndpointDisplay, StringFormat='Điều khiển điện thoại: {0}'}"
+                                               FontSize="18"
+                                               Foreground="{StaticResource AccentCyanBrush}" />
+                                </Border>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+
+                </Grid>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
 </UserControl>

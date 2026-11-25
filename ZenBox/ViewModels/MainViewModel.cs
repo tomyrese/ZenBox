@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Media;
 using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -9,6 +10,10 @@ namespace ZenBox.ViewModels;
 
 public sealed partial class MainViewModel : ObservableObject, IDisposable
 {
+    private static readonly SolidColorBrush TransparentOverlay = CreateFrozenBrush(0, 0, 0, 0);
+    private static readonly SolidColorBrush WarmSoftOverlay = CreateFrozenBrush(30, 255, 148, 48);
+    private static readonly SolidColorBrush DeepNightOverlay = CreateFrozenBrush(56, 255, 126, 28);
+
     private readonly ErrorHandlingService _errorService;
     private readonly ConfigService _configService;
     private readonly NetworkMonitorService _networkService;
@@ -18,6 +23,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private readonly RemoteControlServer _remoteServer;
     private readonly DispatcherTimer _clockTimer;
 
+    private DateTime? _sleepTargetUtc;
+    private bool _updatingVolumeFromSync;
     private bool _disposed;
 
     public HomeViewModel HomeVm { get; }
@@ -48,6 +55,30 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private bool _isErrorVisible;
 
+    [ObservableProperty]
+    private Brush _eyeCareOverlayBrush = TransparentOverlay;
+
+    [ObservableProperty]
+    private bool _isEyeCareActive;
+
+    [ObservableProperty]
+    private string _quickAudioPresetLabel = "Chuẩn cân bằng";
+
+    [ObservableProperty]
+    private string _quickEyeCareLabel = "Bảo vệ mắt: Tắt";
+
+    [ObservableProperty]
+    private string _sleepTimerBadgeText = "Hẹn giờ: Tắt";
+
+    [ObservableProperty]
+    private bool _isSleepTimerActive;
+
+    [ObservableProperty]
+    private int _quickVolumePercent = 60;
+
+    [ObservableProperty]
+    private bool _isSystemMuted;
+
     public bool IsHomeVisible => ActiveSection == AppSection.Home;
 
     public bool IsOnlineAppActive => ActiveSection is
@@ -56,13 +87,16 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         AppSection.Spotify or
         AppSection.TikTok or
         AppSection.Facebook or
+        AppSection.FptPlay or
+        AppSection.VtvGo or
+        AppSection.ZingMp3 or
+        AppSection.AppleMusic or
+        AppSection.PrimeVideo or
         AppSection.Instagram or
         AppSection.SoundCloud or
         AppSection.Twitch or
-        AppSection.VtvGo or
         AppSection.WebBrowser;
 
-    // Khi mở các ứng dụng con hoặc xem phim, ẩn hoàn toàn thanh trên/dưới của hệ thống để ứng dụng tràn 100% màn hình như App bản địa
     public bool IsSystemShellChromeVisible =>
         ActiveSection is AppSection.Home or AppSection.OfflineMovies or AppSection.OfflineMusic or AppSection.SystemConfig;
 
@@ -101,10 +135,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             _configService,
             _errorService,
             PlayMediaItem,
-            () => ActivateSection(AppSection.SystemConfig),
+            OpenSettings,
             NavigateHome);
         MediaPlayerVm = new MediaPlayerViewModel(
             _errorService,
+            _configService,
             wasVideo =>
             {
                 if (wasVideo)
@@ -116,7 +151,17 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                     OpenOfflineMusic();
                 }
             });
-        SettingsVm = new SettingsViewModel(_configService, NavigateHome);
+        SettingsVm = new SettingsViewModel(
+            _configService,
+            _audioService,
+            _webBrowserService,
+            ApplyGlobalAudioPreset,
+            ApplyEyeCareMode,
+            SetSleepTimerMinutes,
+            NavigateHome);
+
+        ApplyGlobalAudioPreset(_configService.Current.SoundPreset);
+        ApplyEyeCareMode(_configService.Current.EyeCare);
 
         _errorService.ErrorReported += OnErrorReported;
         _networkService.NetworkStatusChanged += (_, online) =>
@@ -125,16 +170,13 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         };
 
         ApplyNetworkState(_networkService.IsOnline);
-        UpdateClockAndDate();
+        UpdateClockAndTimers();
 
         _clockTimer = new DispatcherTimer
         {
             Interval = TimeSpan.FromSeconds(1)
         };
-        _clockTimer.Tick += (_, _) =>
-        {
-            UpdateClockAndDate();
-        };
+        _clockTimer.Tick += (_, _) => UpdateClockAndTimers();
         _clockTimer.Start();
 
         _remoteServer = new RemoteControlServer(
@@ -143,16 +185,52 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             HandleRemoteCommand);
     }
 
+    private static SolidColorBrush CreateFrozenBrush(byte a, byte r, byte g, byte b)
+    {
+        var brush = new SolidColorBrush(Color.FromArgb(a, r, g, b));
+        brush.Freeze();
+        return brush;
+    }
+
     public void StartDeferredBackgroundServices()
     {
-        // Khởi động máy chủ điều khiển từ xa trên luồng nền sau khi cửa sổ chính đã hiển thị tức thì
         _ = Task.Run(() => _remoteServer.Start());
+        SyncLiveSystemVolume();
         WebVm.TriggerBackgroundWarmup();
+    }
+
+    public void SyncLiveSystemVolume()
+    {
+        _updatingVolumeFromSync = true;
+        try
+        {
+            QuickVolumePercent = _audioService.GetMasterVolumePercent();
+            IsSystemMuted = _audioService.IsMuted();
+        }
+        finally
+        {
+            _updatingVolumeFromSync = false;
+        }
+    }
+
+    partial void OnQuickVolumePercentChanged(int value)
+    {
+        if (_updatingVolumeFromSync)
+        {
+            return;
+        }
+
+        _audioService.SetMasterVolumePercent(value);
+        IsSystemMuted = false;
     }
 
     partial void OnActiveSectionChanged(AppSection value)
     {
         NotifyVisibilityProperties();
+        if (value == AppSection.SystemConfig)
+        {
+            SettingsVm.RefreshSystemDiagnostics();
+        }
     }
 
     partial void OnIsErrorVisibleChanged(bool value)
@@ -170,11 +248,115 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(IsNonWebHostVisible));
     }
 
-    private void UpdateClockAndDate()
+    private void UpdateClockAndTimers()
     {
         var now = DateTime.Now;
         ClockTimeText = now.ToString("HH:mm");
         VietnameseDateText = FormatVietnameseDate(now);
+
+        if (_sleepTargetUtc.HasValue)
+        {
+            var remaining = _sleepTargetUtc.Value - DateTime.UtcNow;
+            if (remaining <= TimeSpan.Zero)
+            {
+                _sleepTargetUtc = null;
+                IsSleepTimerActive = false;
+                MediaPlayerVm.StopPlayback();
+                _webBrowserService.HideAllTabs();
+                ExitApplication();
+                return;
+            }
+
+            var mins = (int)remaining.TotalMinutes;
+            var secs = remaining.Seconds;
+            var countdown = $"{mins:00}:{secs:00}";
+            SleepTimerBadgeText = $"Hẹn tắt: {countdown}";
+            SettingsVm.UpdateSleepStatusDisplay($"Tự động tắt sau {countdown}");
+        }
+    }
+
+    public void ApplyGlobalAudioPreset(AudioPreset preset)
+    {
+        QuickAudioPresetLabel = AudioPresetCatalog.GetDisplayName(preset);
+        MediaPlayerVm.ApplyEqualizerPreset(preset);
+        _webBrowserService.ApplyAudioPresetToAllTabs(preset);
+        SettingsVm.SyncSelectedPresetFromExternal(preset);
+    }
+
+    public void ApplyEyeCareMode(EyeCareMode mode)
+    {
+        switch (mode)
+        {
+            case EyeCareMode.WarmSoft:
+                EyeCareOverlayBrush = WarmSoftOverlay;
+                IsEyeCareActive = true;
+                QuickEyeCareLabel = "Mắt: Ấm dịu";
+                break;
+            case EyeCareMode.DeepNight:
+                EyeCareOverlayBrush = DeepNightOverlay;
+                IsEyeCareActive = true;
+                QuickEyeCareLabel = "Mắt: Ban đêm";
+                break;
+            default:
+                EyeCareOverlayBrush = TransparentOverlay;
+                IsEyeCareActive = false;
+                QuickEyeCareLabel = "Mắt: Chuẩn";
+                break;
+        }
+
+        SettingsVm.SyncEyeCareFromExternal(mode);
+    }
+
+    public void SetSleepTimerMinutes(int minutes)
+    {
+        if (minutes <= 0)
+        {
+            _sleepTargetUtc = null;
+            IsSleepTimerActive = false;
+            SleepTimerBadgeText = "Hẹn giờ: Tắt";
+            SettingsVm.UpdateSleepStatusDisplay("Đang tắt");
+        }
+        else
+        {
+            _sleepTargetUtc = DateTime.UtcNow.AddMinutes(minutes);
+            IsSleepTimerActive = true;
+            UpdateClockAndTimers();
+        }
+    }
+
+    [RelayCommand]
+    public void CycleQuickAudioPreset()
+    {
+        var values = Enum.GetValues<AudioPreset>();
+        var next = values[(Array.IndexOf(values, _configService.Current.SoundPreset) + 1) % values.Length];
+        _configService.Current.SoundPreset = next;
+        _configService.Save();
+        ApplyGlobalAudioPreset(next);
+    }
+
+    [RelayCommand]
+    public void CycleQuickEyeCare()
+    {
+        var values = Enum.GetValues<EyeCareMode>();
+        var next = values[(Array.IndexOf(values, _configService.Current.EyeCare) + 1) % values.Length];
+        _configService.Current.EyeCare = next;
+        _configService.Save();
+        ApplyEyeCareMode(next);
+    }
+
+    [RelayCommand]
+    public void CycleQuickSleepTimer()
+    {
+        int[] steps = [0, 30, 60, 90];
+        int currentMinutes = 0;
+        if (_sleepTargetUtc.HasValue)
+        {
+            var rem = (_sleepTargetUtc.Value - DateTime.UtcNow).TotalMinutes;
+            currentMinutes = rem <= 35 ? 30 : rem <= 65 ? 60 : 90;
+        }
+
+        var nextIdx = (Array.IndexOf(steps, currentMinutes) + 1) % steps.Length;
+        SetSleepTimerMinutes(steps[nextIdx]);
     }
 
     public static string FormatVietnameseDate(DateTime dateTime)
@@ -233,7 +415,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 OpenOfflineMusic();
                 break;
             case AppSection.SystemConfig:
-                ActivateSection(AppSection.SystemConfig);
+                OpenSettings();
                 break;
             default:
                 NavigateHome();
@@ -268,6 +450,15 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         MediaPlayerVm.StopPlayback();
         _webBrowserService.HideAllTabs();
         ActivateSection(AppSection.Home);
+    }
+
+    [RelayCommand]
+    public void OpenSettings()
+    {
+        IsErrorVisible = false;
+        MediaPlayerVm.StopPlayback();
+        _webBrowserService.HideAllTabs();
+        ActivateSection(AppSection.SystemConfig);
     }
 
     [RelayCommand]
@@ -311,6 +502,13 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
+    public void ToggleSystemMute()
+    {
+        _audioService.ToggleMute();
+        IsSystemMuted = _audioService.IsMuted();
+    }
+
+    [RelayCommand]
     public void OpenOfflineMovies()
     {
         IsErrorVisible = false;
@@ -344,10 +542,18 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
-    public void VolumeUp() => _audioService.VolumeUp();
+    public void VolumeUp()
+    {
+        _audioService.VolumeUp();
+        SyncLiveSystemVolume();
+    }
 
     [RelayCommand]
-    public void VolumeDown() => _audioService.VolumeDown();
+    public void VolumeDown()
+    {
+        _audioService.VolumeDown();
+        SyncLiveSystemVolume();
+    }
 
     [RelayCommand]
     public void RetryErrorAction()
@@ -426,6 +632,25 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             case "TIKTOK":
                 OpenTikTok();
                 break;
+            case "FPT":
+            case "FPTPLAY":
+                OpenOnlineChannel(AppSection.FptPlay, "https://fptplay.vn", "FPT Play");
+                break;
+            case "VTV":
+            case "VTVGO":
+                OpenOnlineChannel(AppSection.VtvGo, "https://vtvgo.vn", "VTV Go");
+                break;
+            case "ZING":
+            case "ZINGMP3":
+                OpenOnlineChannel(AppSection.ZingMp3, "https://zingmp3.vn", "Zing MP3");
+                break;
+            case "APPLEMUSIC":
+                OpenOnlineChannel(AppSection.AppleMusic, "https://music.apple.com", "Apple Music");
+                break;
+            case "PRIME":
+            case "PRIMEVIDEO":
+                OpenOnlineChannel(AppSection.PrimeVideo, "https://www.primevideo.com", "Prime Video");
+                break;
             case "INSTAGRAM":
                 OpenOnlineChannel(AppSection.Instagram, "https://www.instagram.com", "Instagram");
                 break;
@@ -434,10 +659,6 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 break;
             case "TWITCH":
                 OpenOnlineChannel(AppSection.Twitch, "https://www.twitch.tv", "Twitch");
-                break;
-            case "VTV":
-            case "VTVGO":
-                OpenOnlineChannel(AppSection.VtvGo, "https://vtvgo.vn", "VTV Go");
                 break;
             case "BROWSER":
             case "WEB":
@@ -453,7 +674,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 break;
             case "CONFIG":
             case "CAI_DAT":
-                ActivateSection(AppSection.SystemConfig);
+                OpenSettings();
                 break;
             default:
                 if (!string.IsNullOrWhiteSpace(target) &&

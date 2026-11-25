@@ -21,9 +21,21 @@ public sealed class BrandLogoFactoryTests
     public void HomeViewModel_ShouldInitializeAllOnlineAndOfflineTilesWithoutException()
     {
         var vm = new HomeViewModel(_ => { });
-        Assert.True(vm.OnlineTiles.Count >= 10);
+        Assert.Equal(14, vm.OnlineTiles.Count);
         Assert.Equal(3, vm.OfflineAndSystemTiles.Count);
         Assert.All(vm.OnlineTiles, tile => Assert.NotNull(tile.LogoImage));
         Assert.All(vm.OfflineAndSystemTiles, tile => Assert.NotNull(tile.LogoImage));
+    }
+
+    [Fact]
+    public void AudioPresetCatalog_ShouldProvideTenBandEqualizerGainsForEveryPreset()
+    {
+        foreach (var preset in Enum.GetValues<AudioPreset>())
+        {
+            Assert.False(string.IsNullOrWhiteSpace(AudioPresetCatalog.GetDisplayName(preset)));
+            Assert.False(string.IsNullOrWhiteSpace(AudioPresetCatalog.GetDescription(preset)));
+            var gains = AudioPresetCatalog.GetTenBandGains(preset);
+            Assert.Equal(10, gains.Length);
+        }
     }
 }

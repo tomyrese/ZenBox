@@ -14,16 +14,25 @@ public sealed partial class MediaPlayerViewModel : ObservableObject, IDisposable
 {
     private static bool _vlcCoreInitialized;
     private static readonly object VlcInitLock = new();
+    private static readonly double[] SpeedOptions = [0.75, 1.0, 1.25, 1.5, 2.0];
+    private static readonly string[] AspectOptions = ["AUTO", "16:9", "21:9"];
 
     private readonly ErrorHandlingService _errorService;
+    private readonly ConfigService _configService;
     private readonly Action<bool> _backToLibraryCallback;
     private readonly DispatcherTimer _cursorWatchTimer;
 
     private LibVLC? _libVlc;
+    private Equalizer? _equalizer;
     private MediaItem? _pendingMediaToStart;
+    private long _pendingResumeMs;
+    private bool _resumeApplied;
     private bool _isUserDraggingSlider;
     private NativePoint _lastCursorPoint;
     private DateTime _lastMouseMoveUtc = DateTime.UtcNow;
+    private DateTime _lastResumeSaveUtc = DateTime.MinValue;
+    private double _currentSpeed = 1.0;
+    private string _currentAspect = "AUTO";
     private bool _disposed;
 
     [ObservableProperty]
@@ -59,6 +68,15 @@ public sealed partial class MediaPlayerViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private bool _isControlsVisible = true;
 
+    [ObservableProperty]
+    private string _soundPresetLabel = "Chuẩn cân bằng";
+
+    [ObservableProperty]
+    private string _speedLabel = "1.0x";
+
+    [ObservableProperty]
+    private string _aspectLabel = "Khung gốc";
+
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GetCursorPos(out NativePoint lpPoint);
@@ -70,12 +88,17 @@ public sealed partial class MediaPlayerViewModel : ObservableObject, IDisposable
         public int Y;
     }
 
-    public MediaPlayerViewModel(ErrorHandlingService errorService, Action<bool> backToLibraryCallback)
+    public MediaPlayerViewModel(
+        ErrorHandlingService errorService,
+        ConfigService configService,
+        Action<bool> backToLibraryCallback)
     {
         _errorService = errorService;
+        _configService = configService;
         _backToLibraryCallback = backToLibraryCallback;
 
         GetCursorPos(out _lastCursorPoint);
+        RefreshLabelsFromConfig();
 
         _cursorWatchTimer = new DispatcherTimer
         {
@@ -83,6 +106,23 @@ public sealed partial class MediaPlayerViewModel : ObservableObject, IDisposable
         };
         _cursorWatchTimer.Tick += OnCursorWatchTick;
     }
+
+    public void RefreshLabelsFromConfig()
+    {
+        var cfg = _configService.Current;
+        SoundPresetLabel = AudioPresetCatalog.GetDisplayName(cfg.SoundPreset);
+        _currentSpeed = cfg.DefaultPlaybackSpeed <= 0 ? 1.0 : cfg.DefaultPlaybackSpeed;
+        SpeedLabel = $"{_currentSpeed:0.##}x";
+        _currentAspect = string.IsNullOrWhiteSpace(cfg.DefaultAspectRatio) ? "AUTO" : cfg.DefaultAspectRatio;
+        AspectLabel = FormatAspectLabel(_currentAspect);
+    }
+
+    private static string FormatAspectLabel(string aspect) => aspect switch
+    {
+        "16:9" => "Tràn 16:9",
+        "21:9" => "Điện ảnh 21:9",
+        _ => "Khung gốc"
+    };
 
     private void OnCursorWatchTick(object? sender, EventArgs e)
     {
@@ -141,6 +181,16 @@ public sealed partial class MediaPlayerViewModel : ObservableObject, IDisposable
             IsPlaying = true;
             PlayPauseButtonText = "Tạm dừng";
             _lastMouseMoveUtc = DateTime.UtcNow;
+
+            ApplyEqualizerPreset(_configService.Current.SoundPreset);
+            player.SetRate((float)_currentSpeed);
+            ApplyAspectRatioToPlayer(_currentAspect);
+
+            if (!_resumeApplied && _pendingResumeMs > 3_000)
+            {
+                _resumeApplied = true;
+                player.Time = _pendingResumeMs;
+            }
         });
 
         player.Paused += (_, _) => RunOnUi(() =>
@@ -148,6 +198,7 @@ public sealed partial class MediaPlayerViewModel : ObservableObject, IDisposable
             IsPlaying = false;
             PlayPauseButtonText = "Tiếp tục phát";
             IsControlsVisible = true;
+            SaveCurrentPositionSnapshot();
         });
 
         player.Stopped += (_, _) => RunOnUi(() =>
@@ -163,6 +214,11 @@ public sealed partial class MediaPlayerViewModel : ObservableObject, IDisposable
             PlayPauseButtonText = "Phát lại";
             ProgressValue = 1000;
             IsControlsVisible = true;
+            if (CurrentMedia is not null)
+            {
+                _configService.Current.ResumePositions.Remove(CurrentMedia.FilePath);
+                _configService.Save();
+            }
         });
 
         player.LengthChanged += (_, e) => RunOnUi(() =>
@@ -177,6 +233,13 @@ public sealed partial class MediaPlayerViewModel : ObservableObject, IDisposable
             if (!_isUserDraggingSlider && total > 0)
             {
                 ProgressValue = Math.Clamp((double)e.Time / total * 1000.0, 0, 1000);
+            }
+
+            // Lưu vị trí xem dở định kỳ mỗi 8 giây (không gây tốn ổ cứng)
+            if (IsVideoTrack && total > 30_000 && (DateTime.UtcNow - _lastResumeSaveUtc).TotalSeconds >= 8)
+            {
+                _lastResumeSaveUtc = DateTime.UtcNow;
+                SavePositionInternal(e.Time, total);
             }
         });
 
@@ -198,11 +261,59 @@ public sealed partial class MediaPlayerViewModel : ObservableObject, IDisposable
         });
 
         VlcPlayer = player;
+        ApplyEqualizerPreset(_configService.Current.SoundPreset);
         return VlcPlayer;
+    }
+
+    public void ApplyEqualizerPreset(AudioPreset preset)
+    {
+        SoundPresetLabel = AudioPresetCatalog.GetDisplayName(preset);
+        if (VlcPlayer is null)
+        {
+            return;
+        }
+
+        try
+        {
+            if (preset == AudioPreset.Balanced)
+            {
+                VlcPlayer.UnsetEqualizer();
+                return;
+            }
+
+            _equalizer?.Dispose();
+            _equalizer = new Equalizer();
+            var gains = AudioPresetCatalog.GetTenBandGains(preset);
+            var bandCount = Math.Min((uint)gains.Length, _equalizer.BandCount);
+            for (uint i = 0; i < bandCount; i++)
+            {
+                _equalizer.SetAmp(gains[i], i);
+            }
+
+            _equalizer.SetPreamp(preset == AudioPreset.NightSoft ? -2.0f : 1.5f);
+            VlcPlayer.SetEqualizer(_equalizer);
+        }
+        catch (Exception ex)
+        {
+            _errorService.LogError(ErrorCategory.UnexpectedSystemError, "Apply VLC Equalizer", ex);
+        }
+    }
+
+    private void ApplyAspectRatioToPlayer(string aspect)
+    {
+        if (VlcPlayer is null || !IsVideoTrack)
+        {
+            return;
+        }
+
+        VlcPlayer.AspectRatio = aspect == "AUTO" ? null : aspect;
     }
 
     public void PlayMedia(MediaItem item)
     {
+        SaveCurrentPositionSnapshot();
+        RefreshLabelsFromConfig();
+
         CurrentMedia = item;
         MediaTitle = item.Title;
         IsAudioTrack = !item.IsVideo;
@@ -211,6 +322,16 @@ public sealed partial class MediaPlayerViewModel : ObservableObject, IDisposable
         TotalDurationText = "00:00";
         ProgressValue = 0;
         IsControlsVisible = true;
+        _resumeApplied = false;
+        _pendingResumeMs = 0;
+
+        if (item.IsVideo &&
+            _configService.Current.AutoResumeVideos &&
+            _configService.Current.ResumePositions.TryGetValue(item.FilePath, out var savedPos))
+        {
+            _pendingResumeMs = savedPos;
+        }
+
         _lastMouseMoveUtc = DateTime.UtcNow;
         GetCursorPos(out _lastCursorPoint);
 
@@ -233,7 +354,6 @@ public sealed partial class MediaPlayerViewModel : ObservableObject, IDisposable
         }
     }
 
-    // Được gọi sau khi VideoView đã gắn HWND thực tế vào MediaPlayer, đảm bảo không bao giờ bung cửa sổ Direct3D rời hay đen hình
     public void StartPendingPlayback()
     {
         var item = _pendingMediaToStart;
@@ -266,8 +386,38 @@ public sealed partial class MediaPlayerViewModel : ObservableObject, IDisposable
         }
     }
 
+    private void SaveCurrentPositionSnapshot()
+    {
+        if (IsVideoTrack && VlcPlayer is { Length: > 30_000 } player)
+        {
+            SavePositionInternal(player.Time, player.Length);
+        }
+    }
+
+    private void SavePositionInternal(long timeMs, long totalMs)
+    {
+        if (CurrentMedia is null || !CurrentMedia.IsVideo || !_configService.Current.AutoResumeVideos)
+        {
+            return;
+        }
+
+        if (timeMs > 5_000 && timeMs < totalMs * 0.95)
+        {
+            _configService.Current.ResumePositions[CurrentMedia.FilePath] = timeMs;
+            _configService.Save();
+        }
+        else if (timeMs >= totalMs * 0.95)
+        {
+            if (_configService.Current.ResumePositions.Remove(CurrentMedia.FilePath))
+            {
+                _configService.Save();
+            }
+        }
+    }
+
     public void StopPlayback()
     {
+        SaveCurrentPositionSnapshot();
         _pendingMediaToStart = null;
         _cursorWatchTimer.Stop();
         IsControlsVisible = true;
@@ -318,6 +468,7 @@ public sealed partial class MediaPlayerViewModel : ObservableObject, IDisposable
 
         if (VlcPlayer.State is VLCState.Ended or VLCState.Stopped && CurrentMedia is not null)
         {
+            _pendingResumeMs = 0;
             PlayMedia(CurrentMedia);
             StartPendingPlayback();
             return;
@@ -327,7 +478,18 @@ public sealed partial class MediaPlayerViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
-    private void Rewind15Seconds()
+    private void RestartFromBeginning()
+    {
+        NotifyUserActivity();
+        if (VlcPlayer is not null)
+        {
+            VlcPlayer.Time = 0;
+            ProgressValue = 0;
+        }
+    }
+
+    [RelayCommand]
+    public void Rewind15Seconds()
     {
         NotifyUserActivity();
         if (VlcPlayer is { Length: > 0 } player)
@@ -337,13 +499,45 @@ public sealed partial class MediaPlayerViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
-    private void Forward15Seconds()
+    public void Forward15Seconds()
     {
         NotifyUserActivity();
         if (VlcPlayer is { Length: > 0 } player)
         {
             player.Time = Math.Min(player.Length, player.Time + 15_000);
         }
+    }
+
+    [RelayCommand]
+    private void CycleSoundPreset()
+    {
+        NotifyUserActivity();
+        var values = Enum.GetValues<AudioPreset>();
+        var nextIdx = (Array.IndexOf(values, _configService.Current.SoundPreset) + 1) % values.Length;
+        var next = values[nextIdx];
+        _configService.Current.SoundPreset = next;
+        _configService.Save();
+        ApplyEqualizerPreset(next);
+    }
+
+    [RelayCommand]
+    private void CyclePlaybackSpeed()
+    {
+        NotifyUserActivity();
+        var idx = Array.FindIndex(SpeedOptions, s => Math.Abs(s - _currentSpeed) < 0.05);
+        _currentSpeed = SpeedOptions[(idx + 1) % SpeedOptions.Length];
+        SpeedLabel = $"{_currentSpeed:0.##}x";
+        VlcPlayer?.SetRate((float)_currentSpeed);
+    }
+
+    [RelayCommand]
+    private void CycleAspectRatio()
+    {
+        NotifyUserActivity();
+        var idx = Array.IndexOf(AspectOptions, _currentAspect);
+        _currentAspect = AspectOptions[(idx + 1) % AspectOptions.Length];
+        AspectLabel = FormatAspectLabel(_currentAspect);
+        ApplyAspectRatioToPlayer(_currentAspect);
     }
 
     [RelayCommand]
@@ -413,7 +607,9 @@ public sealed partial class MediaPlayerViewModel : ObservableObject, IDisposable
         }
 
         _disposed = true;
+        SaveCurrentPositionSnapshot();
         _cursorWatchTimer.Stop();
+        _equalizer?.Dispose();
         VlcPlayer?.Dispose();
         _libVlc?.Dispose();
     }

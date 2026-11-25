@@ -3,20 +3,20 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              FontFamily="{StaticResource PrimaryFontFamily}">
 
-    <!-- Giao diện Pure-Logo Liquid Glass: Chỉ hiển thị Logo thương hiệu tinh khiết đặt giữa mặt kính khúc xạ, không hộp màu bao ngoài, không chữ rườm rà -->
     <ScrollViewer VerticalScrollBarVisibility="Auto"
                   HorizontalScrollBarVisibility="Disabled">
-        <StackPanel Margin="56,34,40,36" ClipToBounds="False">
+        <StackPanel Margin="52,30,32,28" ClipToBounds="False">
 
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="4,0,0,24">
-                <Border Width="8" Height="26" CornerRadius="4" Background="{StaticResource LiquidCyanPillBrush}" Margin="0,0,14,0" />
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="4,0,0,22">
+                <Border Width="7" Height="26" CornerRadius="3.5" Background="{StaticResource LiquidCyanPillBrush}" Margin="0,0,14,0" />
                 <TextBlock Text="Giải trí trực tuyến"
-                           FontSize="30"
+                           FontSize="28"
                            FontWeight="Bold"
                            Foreground="{StaticResource TextPrimaryBrush}" />
             </StackPanel>
 
-            <ItemsControl ItemsSource="{Binding OnlineTiles}" Margin="0,4,0,26" ClipToBounds="False">
+            <!-- 14 ứng dụng trực tuyến căn chuẩn lưới 7 cột x 2 hàng cân đối tuyệt đối -->
+            <ItemsControl ItemsSource="{Binding OnlineTiles}" Margin="0,4,0,22" ClipToBounds="False">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                         <WrapPanel Orientation="Horizontal" ClipToBounds="False" />
@@ -28,25 +28,23 @@
                                 Command="{Binding DataContext.SelectTileCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                 CommandParameter="{Binding}"
                                 ToolTip="{Binding Title}"
-                                MinWidth="210"
-                                MinHeight="172"
-                                Width="216"
-                                Height="176"
+                                MinWidth="206"
+                                MinHeight="168"
+                                Width="212"
+                                Height="170"
                                 Padding="0"
-                                Margin="0,0,28,28">
+                                Margin="0,0,24,24">
                             <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ClipToBounds="False">
-                                <!-- Ánh hào quang màu thương hiệu tỏa nhẹ phía sau logo -->
-                                <Ellipse Width="120"
-                                         Height="120"
+                                <Ellipse Width="116"
+                                         Height="116"
                                          Fill="{Binding GlowBrush}"
                                          HorizontalAlignment="Center"
                                          VerticalAlignment="Center"
                                          IsHitTestVisible="False" />
 
-                                <!-- Chỉ duy nhất Logo thương hiệu sắc nét ở tâm mặt kính -->
                                 <Image Source="{Binding LogoImage}"
-                                       Width="86"
-                                       Height="86"
+                                       Width="82"
+                                       Height="82"
                                        Stretch="Uniform"
                                        HorizontalAlignment="Center"
                                        VerticalAlignment="Center"
@@ -57,15 +55,15 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="4,6,0,24">
-                <Border Width="8" Height="26" CornerRadius="4" Background="{StaticResource SuccessGreenBrush}" Margin="0,0,14,0" />
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="4,4,0,22">
+                <Border Width="7" Height="26" CornerRadius="3.5" Background="{StaticResource SuccessGreenBrush}" Margin="0,0,14,0" />
                 <TextBlock Text="Thư viện &amp; Hệ thống"
-                           FontSize="30"
+                           FontSize="28"
                            FontWeight="Bold"
                            Foreground="{StaticResource TextPrimaryBrush}" />
             </StackPanel>
 
-            <ItemsControl ItemsSource="{Binding OfflineAndSystemTiles}" Margin="0,4,0,12" ClipToBounds="False">
+            <ItemsControl ItemsSource="{Binding OfflineAndSystemTiles}" Margin="0,4,0,8" ClipToBounds="False">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                         <WrapPanel Orientation="Horizontal" ClipToBounds="False" />
@@ -77,23 +75,23 @@
                                 Command="{Binding DataContext.SelectTileCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                 CommandParameter="{Binding}"
                                 ToolTip="{Binding Title}"
-                                MinWidth="210"
-                                MinHeight="172"
-                                Width="216"
-                                Height="176"
+                                MinWidth="206"
+                                MinHeight="168"
+                                Width="212"
+                                Height="170"
                                 Padding="0"
-                                Margin="0,0,28,28">
+                                Margin="0,0,24,24">
                             <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ClipToBounds="False">
-                                <Ellipse Width="120"
-                                         Height="120"
+                                <Ellipse Width="116"
+                                         Height="116"
                                          Fill="{Binding GlowBrush}"
                                          HorizontalAlignment="Center"
                                          VerticalAlignment="Center"
                                          IsHitTestVisible="False" />
 
                                 <Image Source="{Binding LogoImage}"
-                                       Width="84"
-                                       Height="84"
+                                       Width="80"
+                                       Height="80"
                                        Stretch="Uniform"
                                        HorizontalAlignment="Center"
                                        VerticalAlignment="Center"

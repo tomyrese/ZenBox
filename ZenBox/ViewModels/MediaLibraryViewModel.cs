@@ -16,6 +16,7 @@ public sealed partial class MediaLibraryViewModel : ObservableObject
     private readonly Action _openConfigCallback;
     private readonly Action _goHomeCallback;
 
+    private List<MediaItem> _allScannedItems = [];
     private bool _isVideoMode = true;
     private CancellationTokenSource? _scanCts;
 
@@ -27,6 +28,12 @@ public sealed partial class MediaLibraryViewModel : ObservableObject
 
     [ObservableProperty]
     private string _emptyStateMessage = "Chưa tìm thấy tệp nào trong thư mục đã chọn.";
+
+    [ObservableProperty]
+    private string _searchKeyword = string.Empty;
+
+    [ObservableProperty]
+    private string _itemCountText = string.Empty;
 
     [ObservableProperty]
     private bool _isScanning;
@@ -52,6 +59,11 @@ public sealed partial class MediaLibraryViewModel : ObservableObject
         _goHomeCallback = goHomeCallback;
     }
 
+    partial void OnSearchKeywordChanged(string value)
+    {
+        ApplySearchFilter();
+    }
+
     public async Task LoadLibraryAsync(bool videoMode)
     {
         _isVideoMode = videoMode;
@@ -61,7 +73,7 @@ public sealed partial class MediaLibraryViewModel : ObservableObject
             ? _configService.Current.MoviesFolderPath
             : _configService.Current.MusicFolderPath;
 
-        CurrentFolderDisplay = $"Thư mục đang mở: {folder}";
+        CurrentFolderDisplay = $"Thư mục: {folder}";
         EmptyStateMessage = videoMode
             ? "Chưa có bộ phim nào trong thư mục này. Hãy chép phim vào máy hoặc bấm Chọn Thư Mục Khác."
             : "Chưa có bài hát nào trong thư mục này. Hãy chép nhạc vào máy hoặc bấm Chọn Thư Mục Khác.";
@@ -85,16 +97,41 @@ public sealed partial class MediaLibraryViewModel : ObservableObject
                 return;
             }
 
+            // Gắn thêm thông tin vị trí đang xem dở nếu có
+            var enriched = new List<MediaItem>(items.Count);
             foreach (var item in items)
             {
-                MediaItems.Add(item);
+                if (item.IsVideo &&
+                    _configService.Current.AutoResumeVideos &&
+                    _configService.Current.ResumePositions.TryGetValue(item.FilePath, out var savedMs) &&
+                    savedMs > 5_000)
+                {
+                    var span = TimeSpan.FromMilliseconds(savedMs);
+                    var posLabel = span.TotalHours >= 1
+                        ? $"{(int)span.TotalHours:00}:{span.Minutes:00}:{span.Seconds:00}"
+                        : $"{span.Minutes:00}:{span.Seconds:00}";
+
+                    enriched.Add(new MediaItem
+                    {
+                        Title = item.Title,
+                        FilePath = item.FilePath,
+                        FileSizeText = item.FileSizeText,
+                        SubInfoText = $"Đang xem dở ({posLabel}) • {item.FileSizeText}",
+                        IsVideo = item.IsVideo,
+                        CoverImage = item.CoverImage
+                    });
+                }
+                else
+                {
+                    enriched.Add(item);
+                }
             }
 
-            IsEmpty = MediaItems.Count == 0;
+            _allScannedItems = enriched;
+            ApplySearchFilter();
         }
         catch (OperationCanceledException)
         {
-            // Đã hủy quét khi chuyển màn hình
         }
         catch (Exception ex)
         {
@@ -107,6 +144,30 @@ public sealed partial class MediaLibraryViewModel : ObservableObject
                 IsScanning = false;
             }
         }
+    }
+
+    private void ApplySearchFilter()
+    {
+        MediaItems.Clear();
+        var query = SearchKeyword?.Trim();
+        var filtered = string.IsNullOrWhiteSpace(query)
+            ? _allScannedItems
+            : _allScannedItems.Where(x => x.Title.Contains(query, StringComparison.CurrentCultureIgnoreCase)).ToList();
+
+        foreach (var item in filtered)
+        {
+            MediaItems.Add(item);
+        }
+
+        IsEmpty = _allScannedItems.Count == 0;
+        var unit = _isVideoMode ? "bộ phim" : "bài hát";
+        ItemCountText = $"{MediaItems.Count} {unit}";
+    }
+
+    [RelayCommand]
+    private void ClearSearch()
+    {
+        SearchKeyword = string.Empty;
     }
 
     [RelayCommand]

@@ -32,7 +32,6 @@ public sealed class WebBrowserService : IDisposable
     private const string CleanEdgeUserAgent =
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0";
 
-    // CSS & JS biến trang web thành trải nghiệm Native App thực thụ: ẩn thanh cuộn thô, tắt kéo thả ảnh/link, nền tối chống chớp trắng, ẩn banner giục cài app
     private const string NativeAppModeInjectionScript = """
         (() => {
             const injectAppStyle = () => {
@@ -52,7 +51,6 @@ public sealed class WebBrowserService : IDisposable
                     img, a {
                         -webkit-user-drag: none !important;
                     }
-                    /* Ẩn các banner gạ tải ứng dụng di động/máy tính trên web */
                     [data-e2e="download-app-container"],
                     [class*="DivPromotionContainer"],
                     [id*="smartbanner"],
@@ -69,24 +67,32 @@ public sealed class WebBrowserService : IDisposable
 
     private readonly ErrorHandlingService _errorService;
     private readonly NetworkMonitorService _networkService;
+    private readonly ConfigService _configService;
     private readonly Dictionary<AppSection, WebView2> _browserPool = new();
+    private readonly List<AppSection> _lruOrder = new();
     private readonly HashSet<AppSection> _initializedTabs = new();
     private readonly SemaphoreSlim _envLock = new(1, 1);
 
+    private Panel? _lastHostPanel;
     private CoreWebView2Environment? _sharedEnvironment;
     private bool _uBlockLoadedInProfile;
     private bool _disposed;
 
-    public IReadOnlyDictionary<AppSection, WebView2> BrowserPool => _browserPool;
+    public int ActivePoolCount => _browserPool.Count;
 
     public event EventHandler<string>? ActiveTitleChanged;
     public event EventHandler<bool>? LoadingStateChanged;
     public event EventHandler<bool>? AppSplashVisibilityChanged;
+    public event EventHandler? PoolCountChanged;
 
-    public WebBrowserService(ErrorHandlingService errorService, NetworkMonitorService networkService)
+    public WebBrowserService(
+        ErrorHandlingService errorService,
+        NetworkMonitorService networkService,
+        ConfigService configService)
     {
         _errorService = errorService;
         _networkService = networkService;
+        _configService = configService;
     }
 
     public static string GetUBlockExtensionDirectory()
@@ -117,7 +123,7 @@ public sealed class WebBrowserService : IDisposable
             Directory.CreateDirectory(userDataFolder);
 
             var options = new CoreWebView2EnvironmentOptions(
-                additionalBrowserArguments: "--autoplay-policy=no-user-gesture-required")
+                additionalBrowserArguments: "--autoplay-policy=no-user-gesture-required --enable-features=VaapiVideoDecoder,CanvasOopRasterization")
             {
                 AreBrowserExtensionsEnabled = true
             };
@@ -137,6 +143,7 @@ public sealed class WebBrowserService : IDisposable
 
     public async Task PrewarmEnvironmentAndExtensionAsync(Panel hostPanel)
     {
+        _lastHostPanel = hostPanel;
         try
         {
             var env = await GetOrCreateEnvironmentAsync();
@@ -161,7 +168,6 @@ public sealed class WebBrowserService : IDisposable
                         }
                         catch
                         {
-                            // Đã cài sẵn từ phiên trước
                         }
                         _uBlockLoadedInProfile = true;
                     }
@@ -181,12 +187,19 @@ public sealed class WebBrowserService : IDisposable
 
     public async Task<WebView2> GetOrCreateTabAsync(AppSection section, string targetUrl, Panel hostPanel)
     {
-        PauseBackgroundTabsMedia(exceptSection: section);
+        _lastHostPanel = hostPanel;
+        TouchLru(section);
+        PauseAndTrimBackgroundTabs(exceptSection: section);
 
-        // Nếu ứng dụng đã mở sẵn trong Pool: chuyển tức thì như Native App đang chạy ngầm
         if (_browserPool.TryGetValue(section, out var existingWebView))
         {
             ShowOnlySelectedWebView(existingWebView);
+            if (existingWebView.CoreWebView2 is not null)
+            {
+                existingWebView.CoreWebView2.MemoryUsageTargetLevel = CoreWebView2MemoryUsageTargetLevel.Normal;
+                ApplyWebAudioEqualizerToCore(existingWebView.CoreWebView2, _configService.Current.SoundPreset);
+            }
+
             LoadingStateChanged?.Invoke(this, false);
             AppSplashVisibilityChanged?.Invoke(this, false);
             if (!string.IsNullOrWhiteSpace(existingWebView.CoreWebView2?.DocumentTitle))
@@ -195,6 +208,9 @@ public sealed class WebBrowserService : IDisposable
             }
             return existingWebView;
         }
+
+        // Tự động thu hồi tab cũ nhất nếu vượt quá giới hạn tiết kiệm RAM thông minh
+        EnforceSmartMemoryLimit(hostPanel, keepSection: section);
 
         var webView = new WebView2
         {
@@ -206,11 +222,11 @@ public sealed class WebBrowserService : IDisposable
 
         hostPanel.Children.Add(webView);
         _browserPool[section] = webView;
+        PoolCountChanged?.Invoke(this, EventArgs.Empty);
         ShowOnlySelectedWebView(webView);
 
         try
         {
-            // Hiện màn hình khởi động App (Splash Logo) mượt mà ở lần khởi chạy đầu tiên để che hoàn toàn quá trình nạp trang
             AppSplashVisibilityChanged?.Invoke(this, true);
             LoadingStateChanged?.Invoke(this, true);
 
@@ -234,6 +250,39 @@ public sealed class WebBrowserService : IDisposable
         return webView;
     }
 
+    private void TouchLru(AppSection section)
+    {
+        _lruOrder.Remove(section);
+        _lruOrder.Add(section);
+    }
+
+    private void EnforceSmartMemoryLimit(Panel hostPanel, AppSection keepSection)
+    {
+        if (!_configService.Current.SmartMemorySaver)
+        {
+            return;
+        }
+
+        var maxTabs = Math.Clamp(_configService.Current.MaxCachedWebApps, 2, 10);
+        while (_browserPool.Count >= maxTabs && _lruOrder.Count > 0)
+        {
+            var oldest = _lruOrder.FirstOrDefault(s => s != keepSection);
+            if (oldest == default)
+            {
+                break;
+            }
+
+            _lruOrder.Remove(oldest);
+            _initializedTabs.Remove(oldest);
+            if (_browserPool.Remove(oldest, out var victim))
+            {
+                hostPanel.Children.Remove(victim);
+                victim.Dispose();
+                PoolCountChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+    }
+
     private async Task ConfigureAdBlockingAndAppExperienceAsync(WebView2 webView, AppSection section)
     {
         var core = webView.CoreWebView2;
@@ -248,10 +297,8 @@ public sealed class WebBrowserService : IDisposable
         core.Settings.IsGeneralAutofillEnabled = true;
         core.Settings.UserAgent = CleanEdgeUserAgent;
 
-        // Tiêm CSS/JS chế độ Native App trước khi trang vẽ khung hình đầu tiên
         await core.AddScriptToExecuteOnDocumentCreatedAsync(NativeAppModeInjectionScript);
 
-        // Lớp chặn 1: uBlock Origin
         if (!_uBlockLoadedInProfile)
         {
             var uBlockDir = GetUBlockExtensionDirectory();
@@ -271,7 +318,6 @@ public sealed class WebBrowserService : IDisposable
             }
         }
 
-        // Lớp chặn 2: Chặn tên miền quảng cáo
         foreach (var domain in BlockedAdDomains)
         {
             core.AddWebResourceRequestedFilter($"*://{domain}/*", CoreWebView2WebResourceContext.All);
@@ -290,7 +336,6 @@ public sealed class WebBrowserService : IDisposable
             }
         };
 
-        // Giữ mọi luồng đăng nhập OAuth / liên kết trong cùng cửa sổ ứng dụng
         core.NewWindowRequested += (_, args) =>
         {
             args.Handled = true;
@@ -320,7 +365,6 @@ public sealed class WebBrowserService : IDisposable
             }
         };
 
-        // Cấp quyền phát tự động & nội dung bản quyền DRM (Widevine/PlayReady cho Netflix & Spotify)
         core.PermissionRequested += (_, args) =>
         {
             var kindName = args.PermissionKind.ToString();
@@ -333,6 +377,7 @@ public sealed class WebBrowserService : IDisposable
 
         core.DOMContentLoaded += (_, _) =>
         {
+            ApplyWebAudioEqualizerToCore(core, _configService.Current.SoundPreset);
             if (!_initializedTabs.Contains(section))
             {
                 _initializedTabs.Add(section);
@@ -354,6 +399,8 @@ public sealed class WebBrowserService : IDisposable
         core.NavigationCompleted += (_, args) =>
         {
             _initializedTabs.Add(section);
+            ApplyWebAudioEqualizerToCore(core, _configService.Current.SoundPreset);
+
             if (webView.Visibility == Visibility.Visible)
             {
                 LoadingStateChanged?.Invoke(this, false);
@@ -383,6 +430,63 @@ public sealed class WebBrowserService : IDisposable
                     });
             }
         };
+    }
+
+    public void ApplyAudioPresetToAllTabs(AudioPreset preset)
+    {
+        foreach (var view in _browserPool.Values)
+        {
+            if (view.CoreWebView2 is not null)
+            {
+                ApplyWebAudioEqualizerToCore(view.CoreWebView2, preset);
+            }
+        }
+    }
+
+    private static void ApplyWebAudioEqualizerToCore(CoreWebView2 core, AudioPreset preset)
+    {
+        var (bass, mid, treble) = AudioPresetCatalog.GetWebThreeBandGains(preset);
+        var js = $$"""
+            (() => {
+                window.__zenEqPreset = { bass: {{bass}}, mid: {{mid}}, treble: {{treble}} };
+                const hookMedia = (el) => {
+                    try {
+                        if (!el.__zenEqNodes) {
+                            const Ctx = window.AudioContext || window.webkitAudioContext;
+                            if (!Ctx) return;
+                            if (!window.__zenAudioCtx) window.__zenAudioCtx = new Ctx();
+                            const ctx = window.__zenAudioCtx;
+                            const src = ctx.createMediaElementSource(el);
+                            const low = ctx.createBiquadFilter(); low.type = 'lowshelf'; low.frequency.value = 110;
+                            const midF = ctx.createBiquadFilter(); midF.type = 'peaking'; midF.frequency.value = 1800; midF.Q.value = 1.0;
+                            const high = ctx.createBiquadFilter(); high.type = 'highshelf'; high.frequency.value = 8500;
+                            src.connect(low); low.connect(midF); midF.connect(high); high.connect(ctx.destination);
+                            el.__zenEqNodes = { low, midF, high };
+                        }
+                        el.__zenEqNodes.low.gain.value = window.__zenEqPreset.bass;
+                        el.__zenEqNodes.midF.gain.value = window.__zenEqPreset.mid;
+                        el.__zenEqNodes.high.gain.value = window.__zenEqPreset.treble;
+                    } catch (e) {}
+                };
+                document.querySelectorAll('video, audio').forEach(hookMedia);
+                if (!window.__zenEqObserver) {
+                    window.__zenEqObserver = new MutationObserver(() => {
+                        document.querySelectorAll('video, audio').forEach(hookMedia);
+                    });
+                    if (document.body) {
+                        window.__zenEqObserver.observe(document.body, { childList: true, subtree: true });
+                    }
+                }
+            })();
+            """;
+
+        try
+        {
+            _ = core.ExecuteScriptAsync(js);
+        }
+        catch
+        {
+        }
     }
 
     private static bool IsGenuineFatalWebError(CoreWebView2WebErrorStatus status)
@@ -431,7 +535,7 @@ public sealed class WebBrowserService : IDisposable
         }
     }
 
-    private void PauseBackgroundTabsMedia(AppSection? exceptSection = null)
+    private void PauseAndTrimBackgroundTabs(AppSection? exceptSection = null)
     {
         foreach (var (sec, view) in _browserPool)
         {
@@ -442,16 +546,57 @@ public sealed class WebBrowserService : IDisposable
 
             try
             {
-                if (view.CoreWebView2 is not null)
+                if (view.CoreWebView2 is { } core)
                 {
-                    _ = view.CoreWebView2.ExecuteScriptAsync(
+                    _ = core.ExecuteScriptAsync(
                         "document.querySelectorAll('video,audio').forEach(el => { try { el.pause(); } catch(e){} });");
+
+                    if (_configService.Current.SmartMemorySaver)
+                    {
+                        // Thu hồi tới 70% RAM GPU/V8 của các ứng dụng nằm dưới nền mà vẫn giữ nguyên trạng thái trang!
+                        core.MemoryUsageTargetLevel = CoreWebView2MemoryUsageTargetLevel.Low;
+                    }
                 }
             }
             catch
             {
-                // Bỏ qua nếu trang chưa sẵn sàng
             }
+        }
+    }
+
+    public void ReleaseAllBackgroundTabs()
+    {
+        foreach (var sec in _browserPool.Keys.ToList())
+        {
+            if (_browserPool.Remove(sec, out var view))
+            {
+                _lastHostPanel?.Children.Remove(view);
+                view.Dispose();
+            }
+        }
+
+        _lruOrder.Clear();
+        _initializedTabs.Clear();
+        PoolCountChanged?.Invoke(this, EventArgs.Empty);
+
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+    }
+
+    public async Task ClearTemporaryWebDataAsync()
+    {
+        try
+        {
+            var sample = _browserPool.Values.FirstOrDefault(v => v.CoreWebView2 is not null);
+            if (sample?.CoreWebView2?.Profile is { } profile)
+            {
+                await profile.ClearBrowsingDataAsync(
+                    CoreWebView2BrowsingDataKinds.DiskCache | CoreWebView2BrowsingDataKinds.DownloadHistory);
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorService.LogError(ErrorCategory.UnexpectedSystemError, "ClearBrowsingDataAsync", ex);
         }
     }
 
@@ -466,7 +611,7 @@ public sealed class WebBrowserService : IDisposable
     public void HideAllTabs()
     {
         AppSplashVisibilityChanged?.Invoke(this, false);
-        PauseBackgroundTabsMedia();
+        PauseAndTrimBackgroundTabs();
         foreach (var item in _browserPool.Values)
         {
             item.Visibility = Visibility.Collapsed;

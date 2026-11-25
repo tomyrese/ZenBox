@@ -22,7 +22,7 @@ public partial class App : Application
             var configService = new ConfigService(_errorService);
             var networkService = new NetworkMonitorService();
             var audioService = new SystemAudioService();
-            var webBrowserService = new WebBrowserService(_errorService, networkService);
+            var webBrowserService = new WebBrowserService(_errorService, networkService, configService);
             var mediaLibraryService = new MediaLibraryService(_errorService);
 
             _mainViewModel = new MainViewModel(
