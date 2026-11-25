@@ -82,7 +82,15 @@ public sealed partial class MediaPlayerViewModel : ObservableObject, IDisposable
         {
             if (!_vlcCoreInitialized)
             {
-                Core.Initialize();
+                var vlcLibPath = ResolveLibVlcDirectory();
+                if (!string.IsNullOrWhiteSpace(vlcLibPath))
+                {
+                    Core.Initialize(vlcLibPath);
+                }
+                else
+                {
+                    Core.Initialize();
+                }
                 _vlcCoreInitialized = true;
             }
         }
@@ -287,6 +295,32 @@ public sealed partial class MediaPlayerViewModel : ObservableObject, IDisposable
         var wasVideo = CurrentMedia?.IsVideo ?? true;
         StopPlayback();
         _backToLibraryCallback(wasVideo);
+    }
+
+    private static string? ResolveLibVlcDirectory()
+    {
+        var candidateRoots = new List<string> { AppContext.BaseDirectory };
+        if (AppContext.GetData("NATIVE_DLL_SEARCH_DIRECTORIES") is string nativeDirs)
+        {
+            candidateRoots.AddRange(
+                nativeDirs.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+        }
+
+        foreach (var root in candidateRoots)
+        {
+            var winX64Dir = Path.Combine(root, "libvlc", "win-x64");
+            if (File.Exists(Path.Combine(winX64Dir, "libvlc.dll")))
+            {
+                return winX64Dir;
+            }
+
+            if (File.Exists(Path.Combine(root, "libvlc.dll")))
+            {
+                return root;
+            }
+        }
+
+        return null;
     }
 
     private static string FormatTime(long milliseconds)
