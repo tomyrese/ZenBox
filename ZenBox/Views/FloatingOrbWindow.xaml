@@ -2,8 +2,8 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Cụm nút nổi ZenBox"
-        Width="92"
-        Height="164"
+        Width="72"
+        Height="132"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
@@ -14,11 +14,11 @@
 
     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" ClipToBounds="False">
 
-        <!-- Nút Trả Về Nhanh (Tự động xuất hiện ngay trên viên ngọc khi đang ở trong bất kỳ ứng dụng / màn hình con nào) -->
+        <!-- Nút Trả Về Nhanh gọn 48x48px nằm gọn trong lề phải, tự động ẩn hoàn toàn sau 2.2s khi xem video toàn màn hình -->
         <Grid x:Name="BackOrb"
-              Width="58"
-              Height="58"
-              Margin="0,0,0,14"
+              Width="48"
+              Height="48"
+              Margin="0,0,0,12"
               Cursor="Hand"
               RenderTransformOrigin="0.5,0.5"
               ToolTip="Trở về trang trước / Về Trang Chủ"
@@ -37,13 +37,13 @@
                                 <BeginStoryboard>
                                     <Storyboard>
                                         <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
-                                                         To="1.12" Duration="0:0:0.20">
+                                                         To="1.08" Duration="0:0:0.18">
                                             <DoubleAnimation.EasingFunction>
                                                 <QuinticEase EasingMode="EaseOut" />
                                             </DoubleAnimation.EasingFunction>
                                         </DoubleAnimation>
                                         <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
-                                                         To="1.12" Duration="0:0:0.20">
+                                                         To="1.08" Duration="0:0:0.18">
                                             <DoubleAnimation.EasingFunction>
                                                 <QuinticEase EasingMode="EaseOut" />
                                             </DoubleAnimation.EasingFunction>
@@ -55,13 +55,13 @@
                                 <BeginStoryboard>
                                     <Storyboard>
                                         <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
-                                                         To="1.0" Duration="0:0:0.20">
+                                                         To="1.0" Duration="0:0:0.18">
                                             <DoubleAnimation.EasingFunction>
                                                 <QuarticEase EasingMode="EaseOut" />
                                             </DoubleAnimation.EasingFunction>
                                         </DoubleAnimation>
                                         <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
-                                                         To="1.0" Duration="0:0:0.20">
+                                                         To="1.0" Duration="0:0:0.18">
                                             <DoubleAnimation.EasingFunction>
                                                 <QuarticEase EasingMode="EaseOut" />
                                             </DoubleAnimation.EasingFunction>
@@ -74,24 +74,23 @@
                 </Style>
             </Grid.Style>
 
-            <Ellipse Margin="-8" Fill="{StaticResource CyanAmbientBloomBrush}" IsHitTestVisible="False" />
-            <Border CornerRadius="29" Background="#E00B1324" />
-            <Border CornerRadius="29" Background="{StaticResource LiquidCyanPillBrush}" Opacity="0.88" />
-            <Border CornerRadius="29" BorderBrush="#CCFFFFFF" BorderThickness="1.8" IsHitTestVisible="False" />
+            <Border CornerRadius="24" Background="#D80B1324" />
+            <Border CornerRadius="24" Background="{StaticResource LiquidCyanPillBrush}" Opacity="0.88" />
+            <Border CornerRadius="24" BorderBrush="#CCFFFFFF" BorderThickness="1.5" IsHitTestVisible="False" />
             <Path Data="{StaticResource IconBackGeometry}"
                   Fill="#FFFFFF"
                   Stretch="Uniform"
-                  Width="22"
-                  Height="22"
+                  Width="19"
+                  Height="19"
                   HorizontalAlignment="Center"
                   VerticalAlignment="Center"
                   IsHitTestVisible="False" />
         </Grid>
 
-        <!-- Viên ngọc mở Trung tâm điều khiển -->
+        <!-- Viên ngọc mở Trung tâm điều khiển 48x48px cân tâm chuẩn xác -->
         <Grid x:Name="MenuOrb"
-              Width="58"
-              Height="58"
+              Width="48"
+              Height="48"
               Cursor="Hand"
               RenderTransformOrigin="0.5,0.5"
               ToolTip="Mở Trung tâm điều khiển (hoặc giữ chuột để kéo đi)"
@@ -109,13 +108,13 @@
                                 <BeginStoryboard>
                                     <Storyboard>
                                         <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
-                                                         To="1.12" Duration="0:0:0.20">
+                                                         To="1.08" Duration="0:0:0.18">
                                             <DoubleAnimation.EasingFunction>
                                                 <QuinticEase EasingMode="EaseOut" />
                                             </DoubleAnimation.EasingFunction>
                                         </DoubleAnimation>
                                         <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
-                                                         To="1.12" Duration="0:0:0.20">
+                                                         To="1.08" Duration="0:0:0.18">
                                             <DoubleAnimation.EasingFunction>
                                                 <QuinticEase EasingMode="EaseOut" />
                                             </DoubleAnimation.EasingFunction>
@@ -127,13 +126,13 @@
                                 <BeginStoryboard>
                                     <Storyboard>
                                         <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
-                                                         To="1.0" Duration="0:0:0.20">
+                                                         To="1.0" Duration="0:0:0.18">
                                             <DoubleAnimation.EasingFunction>
                                                 <QuarticEase EasingMode="EaseOut" />
                                             </DoubleAnimation.EasingFunction>
                                         </DoubleAnimation>
                                         <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
-                                                         To="1.0" Duration="0:0:0.20">
+                                                         To="1.0" Duration="0:0:0.18">
                                             <DoubleAnimation.EasingFunction>
                                                 <QuarticEase EasingMode="EaseOut" />
                                             </DoubleAnimation.EasingFunction>
@@ -146,15 +145,14 @@
                 </Style>
             </Grid.Style>
 
-            <Ellipse Margin="-8" Fill="{StaticResource CyanAmbientBloomBrush}" IsHitTestVisible="False" />
-            <Border CornerRadius="29" Background="#DC0B1222" />
-            <Border CornerRadius="29" Background="{StaticResource LiquidGlassFillBrush}" />
-            <Border CornerRadius="29" BorderBrush="{StaticResource LiquidGlassActiveRimBrush}" BorderThickness="1.8" IsHitTestVisible="False" />
+            <Border CornerRadius="24" Background="#DC0B1222" />
+            <Border CornerRadius="24" Background="{StaticResource LiquidGlassFillBrush}" />
+            <Border CornerRadius="24" BorderBrush="{StaticResource LiquidGlassActiveRimBrush}" BorderThickness="1.5" IsHitTestVisible="False" />
             <Path Data="{StaticResource IconGridCenterGeometry}"
                   Fill="#FFFFFF"
                   Stretch="Uniform"
-                  Width="22"
-                  Height="22"
+                  Width="18"
+                  Height="18"
                   HorizontalAlignment="Center"
                   VerticalAlignment="Center"
                   IsHitTestVisible="False" />

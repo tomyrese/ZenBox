@@ -79,6 +79,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private bool _isSystemMuted;
 
+    [ObservableProperty]
+    private bool _isWebVideoFullscreen;
+
     public bool IsHomeVisible => ActiveSection == AppSection.Home;
     public bool IsNotHome => ActiveSection != AppSection.Home;
 
@@ -163,6 +166,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
         ApplyGlobalAudioPreset(_configService.Current.SoundPreset);
         ApplyEyeCareMode(_configService.Current.EyeCare);
+
+        _webBrowserService.FullscreenStateChanged += (_, isFs) =>
+        {
+            Application.Current?.Dispatcher?.InvokeAsync(() => IsWebVideoFullscreen = isFs);
+        };
 
         _errorService.ErrorReported += OnErrorReported;
         _networkService.NetworkStatusChanged += (_, online) =>

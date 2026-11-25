@@ -5,7 +5,7 @@
 
     <ScrollViewer VerticalScrollBarVisibility="Auto"
                   HorizontalScrollBarVisibility="Disabled">
-        <StackPanel Margin="52,30,32,28" ClipToBounds="False">
+        <StackPanel Margin="52,30,96,28" ClipToBounds="False">
 
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="4,0,0,22">
                 <Border Width="7" Height="26" CornerRadius="3.5" Background="{StaticResource LiquidCyanPillBrush}" Margin="0,0,14,0" />
@@ -28,10 +28,10 @@
                                 Command="{Binding DataContext.SelectTileCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                 CommandParameter="{Binding}"
                                 ToolTip="{Binding Title}"
-                                MinWidth="206"
-                                MinHeight="168"
-                                Width="212"
-                                Height="170"
+                                MinWidth="196"
+                                MinHeight="164"
+                                Width="200"
+                                Height="166"
                                 Padding="0"
                                 Margin="0,0,24,24">
                             <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ClipToBounds="False">
@@ -75,10 +75,10 @@
                                 Command="{Binding DataContext.SelectTileCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                 CommandParameter="{Binding}"
                                 ToolTip="{Binding Title}"
-                                MinWidth="206"
-                                MinHeight="168"
-                                Width="212"
-                                Height="170"
+                                MinWidth="196"
+                                MinHeight="164"
+                                Width="200"
+                                Height="166"
                                 Padding="0"
                                 Margin="0,0,24,24">
                             <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" ClipToBounds="False">

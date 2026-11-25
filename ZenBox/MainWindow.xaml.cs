@@ -32,11 +32,7 @@ public partial class MainWindow : Window
             _viewModel,
             isPopupOpen =>
             {
-                if (_floatingOrbWindow is not null)
-                {
-                    _floatingOrbWindow.Opacity = isPopupOpen ? 0.0 : 1.0;
-                    _floatingOrbWindow.IsHitTestVisible = !isPopupOpen;
-                }
+                _floatingOrbWindow?.SetSuppressedByPopup(isPopupOpen);
             })
         {
             Owner = this

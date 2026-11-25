@@ -1,4 +1,5 @@
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using Microsoft.Web.WebView2.Core;
@@ -62,6 +63,63 @@ public sealed class WebBrowserService : IDisposable
             };
             injectAppStyle();
             document.addEventListener('DOMContentLoaded', injectAppStyle);
+
+            // Tự động phóng toàn màn hình ngay khi người dùng bấm chọn bất kỳ video nào trên YouTube!
+            if (location.hostname.includes('youtube.com')) {
+                let lastAutoFsVideoId = '';
+                const tryEnterYouTubeFullscreen = () => {
+                    if (location.pathname !== '/watch') {
+                        lastAutoFsVideoId = '';
+                        return;
+                    }
+                    const vid = new URLSearchParams(location.search).get('v') || '';
+                    if (!vid || vid === lastAutoFsVideoId) return;
+
+                    let attempts = 0;
+                    const timer = setInterval(() => {
+                        attempts++;
+                        if (location.pathname !== '/watch' || attempts > 28) {
+                            clearInterval(timer);
+                            return;
+                        }
+                        if (document.fullscreenElement) {
+                            lastAutoFsVideoId = vid;
+                            clearInterval(timer);
+                            return;
+                        }
+                        const activeTag = document.activeElement ? document.activeElement.tagName : '';
+                        if (activeTag === 'INPUT' || activeTag === 'TEXTAREA' || document.activeElement?.isContentEditable) {
+                            return;
+                        }
+
+                        const player = document.getElementById('movie_player');
+                        const fsBtn = document.querySelector('.ytp-fullscreen-button');
+                        const videoEl = document.querySelector('video.html5-main-video');
+
+                        if (player && videoEl && videoEl.readyState >= 1) {
+                            lastAutoFsVideoId = vid;
+                            clearInterval(timer);
+                            try {
+                                if (typeof player.toggleFullscreen === 'function' && !player.classList.contains('ytp-fullscreen')) {
+                                    player.toggleFullscreen();
+                                } else if (fsBtn && !player.classList.contains('ytp-fullscreen')) {
+                                    fsBtn.click();
+                                }
+                            } catch (e) {}
+
+                            setTimeout(() => {
+                                if (!document.fullscreenElement && location.pathname === '/watch') {
+                                    window.chrome?.webview?.postMessage('YT_AUTO_FULLSCREEN');
+                                }
+                            }, 280);
+                        }
+                    }, 120);
+                };
+
+                window.addEventListener('yt-navigate-finish', tryEnterYouTubeFullscreen);
+                window.addEventListener('popstate', tryEnterYouTubeFullscreen);
+                document.addEventListener('DOMContentLoaded', tryEnterYouTubeFullscreen);
+            }
         })();
         """;
 
@@ -83,7 +141,22 @@ public sealed class WebBrowserService : IDisposable
     public event EventHandler<string>? ActiveTitleChanged;
     public event EventHandler<bool>? LoadingStateChanged;
     public event EventHandler<bool>? AppSplashVisibilityChanged;
+    public event EventHandler<bool>? FullscreenStateChanged;
     public event EventHandler? PoolCountChanged;
+
+    private const uint WM_KEYDOWN = 0x0100;
+    private const uint WM_KEYUP = 0x0101;
+    private const int VK_F = 0x46;
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool PostMessageW(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool EnumChildWindows(IntPtr hWndParent, EnumWindowsProc lpEnumFunc, IntPtr lParam);
+
+    private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 
     public WebBrowserService(
         ErrorHandlingService errorService,
@@ -375,6 +448,25 @@ public sealed class WebBrowserService : IDisposable
             }
         };
 
+        core.ContainsFullScreenElementChanged += (_, _) =>
+        {
+            if (webView.Visibility == Visibility.Visible)
+            {
+                FullscreenStateChanged?.Invoke(this, core.ContainsFullScreenElement);
+            }
+        };
+
+        core.WebMessageReceived += (_, args) =>
+        {
+            var msg = args.TryGetWebMessageAsString();
+            if (string.Equals(msg, "YT_AUTO_FULLSCREEN", StringComparison.Ordinal) &&
+                webView.Visibility == Visibility.Visible &&
+                !core.ContainsFullScreenElement)
+            {
+                SendYoutubeFullscreenShortcut(webView);
+            }
+        };
+
         core.DOMContentLoaded += (_, _) =>
         {
             ApplyWebAudioEqualizerToCore(core, _configService.Current.SoundPreset);
@@ -608,8 +700,35 @@ public sealed class WebBrowserService : IDisposable
         }
     }
 
+    private static void SendYoutubeFullscreenShortcut(WebView2 webView)
+    {
+        try
+        {
+            webView.Focus();
+            var parentHwnd = webView.Handle;
+            if (parentHwnd == IntPtr.Zero)
+            {
+                return;
+            }
+
+            IntPtr deepestChild = parentHwnd;
+            EnumChildWindows(parentHwnd, (child, _) =>
+            {
+                deepestChild = child;
+                return true;
+            }, IntPtr.Zero);
+
+            PostMessageW(deepestChild, WM_KEYDOWN, (IntPtr)VK_F, IntPtr.Zero);
+            PostMessageW(deepestChild, WM_KEYUP, (IntPtr)VK_F, IntPtr.Zero);
+        }
+        catch
+        {
+        }
+    }
+
     public void HideAllTabs()
     {
+        FullscreenStateChanged?.Invoke(this, false);
         AppSplashVisibilityChanged?.Invoke(this, false);
         PauseAndTrimBackgroundTabs();
         foreach (var item in _browserPool.Values)
@@ -621,9 +740,25 @@ public sealed class WebBrowserService : IDisposable
     public bool TryNavigateActiveTabBack()
     {
         var active = _browserPool.Values.FirstOrDefault(v => v.Visibility == Visibility.Visible);
-        if (active?.CoreWebView2?.CanGoBack == true)
+        if (active?.CoreWebView2 is not { } core)
         {
-            active.CoreWebView2.GoBack();
+            return false;
+        }
+
+        // Nếu đang toàn màn hình video (VD: YouTube), thoát toàn màn hình đồng thời quay về danh sách video chỉ với 1 lần bấm!
+        if (core.ContainsFullScreenElement)
+        {
+            _ = core.ExecuteScriptAsync("if (document.fullscreenElement) { document.exitFullscreen().catch(()=>{}); }");
+            if (core.CanGoBack)
+            {
+                core.GoBack();
+            }
+            return true;
+        }
+
+        if (core.CanGoBack)
+        {
+            core.GoBack();
             return true;
         }
 

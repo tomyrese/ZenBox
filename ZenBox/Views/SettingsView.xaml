@@ -27,7 +27,8 @@
         </Style>
     </UserControl.Resources>
 
-    <Grid Margin="52,26,52,24" ClipToBounds="False">
+    <!-- Dành khoảng lề phải 112px để cụm nút nổi bên cạnh màn hình KHÔNG BAO GIỜ đè lên các thẻ và nút cài đặt -->
+    <Grid Margin="52,26,112,24" ClipToBounds="False">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -93,7 +94,7 @@
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <!-- Cột trái: Thanh điều hướng chuyên mục -->
+            <!-- Cột trái: Thanh điều hướng chuyên mục (Icon đặt trong khung cố định 28px thẳng hàng tuyệt đối) -->
             <Border Grid.Column="0"
                     Style="{StaticResource GlassPanelBorderStyle}"
                     Padding="18,22"
@@ -103,47 +104,71 @@
                             Tag="{Binding IsAudioCategory}"
                             Command="{Binding SelectCategoryCommand}"
                             CommandParameter="0"
-                            MinHeight="64"
+                            HorizontalContentAlignment="Left"
+                            Padding="22,10"
+                            MinHeight="62"
                             Margin="0,0,0,12">
-                        <StackPanel Orientation="Horizontal" Width="260">
-                            <Path Data="{StaticResource IconEqualizerGeometry}" Fill="#FFFFFF" Stretch="Uniform" Width="22" Height="22" Margin="0,0,14,0" VerticalAlignment="Center" />
-                            <TextBlock Text="Âm thanh &amp; Nghe nhạc" FontSize="19" VerticalAlignment="Center" />
-                        </StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="32" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Path Grid.Column="0" Data="{StaticResource IconEqualizerGeometry}" Fill="#FFFFFF" Stretch="Uniform" Width="21" Height="21" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="Âm thanh &amp; Nghe nhạc" FontSize="19" Margin="10,0,0,0" VerticalAlignment="Center" />
+                        </Grid>
                     </Button>
 
                     <Button Style="{StaticResource SelectableOptionCyanStyle}"
                             Tag="{Binding IsCinemaCategory}"
                             Command="{Binding SelectCategoryCommand}"
                             CommandParameter="1"
-                            MinHeight="64"
+                            HorizontalContentAlignment="Left"
+                            Padding="22,10"
+                            MinHeight="62"
                             Margin="0,0,0,12">
-                        <StackPanel Orientation="Horizontal" Width="260">
-                            <Path Data="{StaticResource IconMovieGeometry}" Fill="#FFFFFF" Stretch="Uniform" Width="22" Height="22" Margin="0,0,14,0" VerticalAlignment="Center" />
-                            <TextBlock Text="Hình ảnh &amp; Xem phim" FontSize="19" VerticalAlignment="Center" />
-                        </StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="32" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Path Grid.Column="0" Data="{StaticResource IconMovieGeometry}" Fill="#FFFFFF" Stretch="Uniform" Width="21" Height="21" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="Hình ảnh &amp; Xem phim" FontSize="19" Margin="10,0,0,0" VerticalAlignment="Center" />
+                        </Grid>
                     </Button>
 
                     <Button Style="{StaticResource SelectableOptionCyanStyle}"
                             Tag="{Binding IsPerformanceCategory}"
                             Command="{Binding SelectCategoryCommand}"
                             CommandParameter="2"
-                            MinHeight="64"
+                            HorizontalContentAlignment="Left"
+                            Padding="22,10"
+                            MinHeight="62"
                             Margin="0,0,0,12">
-                        <StackPanel Orientation="Horizontal" Width="260">
-                            <Path Data="{StaticResource IconBoltGeometry}" Fill="#FFFFFF" Stretch="Uniform" Width="22" Height="22" Margin="0,0,14,0" VerticalAlignment="Center" />
-                            <TextBlock Text="Ứng dụng &amp; Hiệu suất" FontSize="19" VerticalAlignment="Center" />
-                        </StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="32" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Path Grid.Column="0" Data="{StaticResource IconBoltGeometry}" Fill="#FFFFFF" Stretch="Uniform" Width="21" Height="21" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="Ứng dụng &amp; Hiệu suất" FontSize="19" Margin="10,0,0,0" VerticalAlignment="Center" />
+                        </Grid>
                     </Button>
 
                     <Button Style="{StaticResource SelectableOptionCyanStyle}"
                             Tag="{Binding IsSystemCategory}"
                             Command="{Binding SelectCategoryCommand}"
                             CommandParameter="3"
-                            MinHeight="64">
-                        <StackPanel Orientation="Horizontal" Width="260">
-                            <Path Data="{StaticResource IconSlidersGeometry}" Fill="#FFFFFF" Stretch="Uniform" Width="22" Height="22" Margin="0,0,14,0" VerticalAlignment="Center" />
-                            <TextBlock Text="Thư viện &amp; Hệ thống" FontSize="19" VerticalAlignment="Center" />
-                        </StackPanel>
+                            HorizontalContentAlignment="Left"
+                            Padding="22,10"
+                            MinHeight="62">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="32" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Path Grid.Column="0" Data="{StaticResource IconSlidersGeometry}" Fill="#FFFFFF" Stretch="Uniform" Width="21" Height="21" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="Thư viện &amp; Hệ thống" FontSize="19" Margin="10,0,0,0" VerticalAlignment="Center" />
+                        </Grid>
                     </Button>
                 </StackPanel>
             </Border>
