@@ -57,7 +57,7 @@
                            Foreground="{StaticResource SuccessGreenBrush}" />
             </Border>
 
-            <!-- Mục 1: Thư mục Phim -->
+            <!-- Mục 1: Thư mục Phim (Dùng Logo thuần không hộp nền ngoài) -->
             <Grid Margin="0,0,0,22" ClipToBounds="False">
                 <Border Style="{StaticResource GlassPanelBorderStyle}" />
                 <Border Background="{StaticResource LiquidTopSheenBrush}" CornerRadius="28" Margin="1.5" IsHitTestVisible="False" />
@@ -67,25 +67,14 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <Grid Grid.Column="0" Width="62" Height="62" Margin="0,0,22,0" VerticalAlignment="Center">
-                        <Border CornerRadius="18">
-                            <Border.Background>
-                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                    <GradientStop Color="#F59E0B" Offset="0" />
-                                    <GradientStop Color="#EA580C" Offset="1" />
-                                </LinearGradientBrush>
-                            </Border.Background>
-                        </Border>
-                        <Border CornerRadius="18" Background="{StaticResource LiquidTopSheenBrush}" />
-                        <Border CornerRadius="18" BorderBrush="#66FFFFFF" BorderThickness="1.2" />
-                        <Path Data="{StaticResource IconMovieGeometry}"
-                              Fill="#FFFFFF"
-                              Stretch="Uniform"
-                              Width="28"
-                              Height="28"
-                              HorizontalAlignment="Center"
-                              VerticalAlignment="Center" />
-                    </Grid>
+                    <Path Grid.Column="0"
+                          Data="{StaticResource IconMovieGeometry}"
+                          Fill="#FBBF24"
+                          Stretch="Uniform"
+                          Width="44"
+                          Height="44"
+                          Margin="0,0,24,0"
+                          VerticalAlignment="Center" />
                     <StackPanel Grid.Column="1" Margin="0,0,24,0" VerticalAlignment="Center">
                         <TextBlock Text="Thư mục chứa Phim của tôi"
                                    FontSize="24"
@@ -127,25 +116,14 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <Grid Grid.Column="0" Width="62" Height="62" Margin="0,0,22,0" VerticalAlignment="Center">
-                        <Border CornerRadius="18">
-                            <Border.Background>
-                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                    <GradientStop Color="#A855F7" Offset="0" />
-                                    <GradientStop Color="#EC4899" Offset="1" />
-                                </LinearGradientBrush>
-                            </Border.Background>
-                        </Border>
-                        <Border CornerRadius="18" Background="{StaticResource LiquidTopSheenBrush}" />
-                        <Border CornerRadius="18" BorderBrush="#66FFFFFF" BorderThickness="1.2" />
-                        <Path Data="{StaticResource IconMusicGeometry}"
-                              Fill="#FFFFFF"
-                              Stretch="Uniform"
-                              Width="28"
-                              Height="28"
-                              HorizontalAlignment="Center"
-                              VerticalAlignment="Center" />
-                    </Grid>
+                    <Path Grid.Column="0"
+                          Data="{StaticResource IconMusicGeometry}"
+                          Fill="#C084FC"
+                          Stretch="Uniform"
+                          Width="44"
+                          Height="44"
+                          Margin="0,0,24,0"
+                          VerticalAlignment="Center" />
                     <StackPanel Grid.Column="1" Margin="0,0,24,0" VerticalAlignment="Center">
                         <TextBlock Text="Thư mục chứa Nhạc của tôi"
                                    FontSize="24"

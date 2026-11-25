@@ -27,9 +27,9 @@
     </Window.Resources>
 
     <Grid Background="{StaticResource DeepDarkBackgroundBrush}" ClipToBounds="True">
-        <!-- Nền Liquid Aurora đa cực mang lại hiệu ứng khúc xạ ánh sáng sâu cho lớp kính phía trên -->
-        <Ellipse Width="1100"
-                 Height="760"
+        <!-- Nền Liquid Aurora sống động -->
+        <Ellipse Width="1150"
+                 Height="780"
                  HorizontalAlignment="Left"
                  VerticalAlignment="Top"
                  Margin="-280,-260,0,0"
@@ -43,8 +43,8 @@
             </Ellipse.Fill>
         </Ellipse>
 
-        <Ellipse Width="1200"
-                 Height="820"
+        <Ellipse Width="1220"
+                 Height="840"
                  HorizontalAlignment="Right"
                  VerticalAlignment="Bottom"
                  Margin="0,0,-320,-280"
@@ -58,33 +58,21 @@
             </Ellipse.Fill>
         </Ellipse>
 
-        <Ellipse Width="780"
-                 Height="520"
-                 HorizontalAlignment="Center"
-                 VerticalAlignment="Center"
-                 Margin="160,-80,0,0"
-                 IsHitTestVisible="False">
-            <Ellipse.Fill>
-                <RadialGradientBrush>
-                    <GradientStop Color="#1214B8A6" Offset="0.0" />
-                    <GradientStop Color="#0014B8A6" Offset="1.0" />
-                </RadialGradientBrush>
-            </Ellipse.Fill>
-        </Ellipse>
-
         <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="94" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
-                <RowDefinition Height="52" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <!-- Thanh trạng thái Liquid Glass trên cùng -->
+            <!-- Thanh trạng thái trên cùng: Tự ẩn hoàn toàn khi mở ứng dụng con để ứng dụng tràn 100% màn hình như App gốc -->
             <Border Grid.Row="0"
-                    Background="#55070B14"
-                    BorderBrush="#22FFFFFF"
+                    Height="92"
+                    Background="#48060A14"
+                    BorderBrush="#1EFFFFFF"
                     BorderThickness="0,0,0,1"
-                    Padding="56,0">
+                    Padding="56,0"
+                    Visibility="{Binding IsSystemShellChromeVisible, Converter={StaticResource BoolToVis}}">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
@@ -92,20 +80,15 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
-                    <!-- Logo ZenBox Liquid Squircle -->
+                    <!-- Logo ZenBox tinh gọn không hộp nền rườm rà -->
                     <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Grid Width="48" Height="48" Margin="0,0,16,0">
-                            <Border CornerRadius="16" Background="{StaticResource BrandLogoBrush}" />
-                            <Border CornerRadius="16" Background="{StaticResource LiquidTopSheenBrush}" />
-                            <Border CornerRadius="16" BorderBrush="#66FFFFFF" BorderThickness="1.2" />
-                            <Path Data="{StaticResource IconZenLogoGeometry}"
-                                  Fill="#FFFFFF"
-                                  Stretch="Uniform"
-                                  Width="25"
-                                  Height="25"
-                                  HorizontalAlignment="Center"
-                                  VerticalAlignment="Center" />
-                        </Grid>
+                        <Path Data="{StaticResource IconZenLogoGeometry}"
+                              Fill="{StaticResource BrandLogoBrush}"
+                              Stretch="Uniform"
+                              Width="38"
+                              Height="38"
+                              Margin="0,0,14,0"
+                              VerticalAlignment="Center" />
                         <TextBlock Text="ZenBox"
                                    FontSize="32"
                                    FontWeight="Bold"
@@ -113,7 +96,7 @@
                                    VerticalAlignment="Center" />
                     </StackPanel>
 
-                    <!-- Cụm viên thuốc Liquid Glass báo mạng + Thứ/Ngày + Đồng hồ -->
+                    <!-- Viên thuốc Liquid Glass báo trạng thái mạng & thời gian -->
                     <Border Grid.Column="2"
                             Background="#18FFFFFF"
                             BorderBrush="{StaticResource LiquidGlassRimBrush}"
@@ -188,7 +171,7 @@
                 </Grid>
             </Border>
 
-            <!-- Vùng hiển thị chính -->
+            <!-- Vùng hiển thị chính (Tràn viền 100% màn hình khi chạy App) -->
             <Grid Grid.Row="1" ClipToBounds="False">
                 <ContentControl Content="{Binding ActiveNonWebViewModel}"
                                 Focusable="False"
@@ -199,19 +182,21 @@
                                         Visibility="{Binding DataContext.IsWebSectionVisible, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVis}}" />
             </Grid>
 
-            <!-- Thanh gợi ý thao tác nhanh phía dưới -->
+            <!-- Thanh gợi ý dưới cùng: Cũng tự ẩn khi đang ở trong App -->
             <Border Grid.Row="2"
-                    Background="#55070B14"
-                    BorderBrush="#1AFFFFFF"
+                    Height="50"
+                    Background="#48060A14"
+                    BorderBrush="#18FFFFFF"
                     BorderThickness="0,1,0,0"
-                    Padding="56,0">
+                    Padding="56,0"
+                    Visibility="{Binding IsSystemShellChromeVisible, Converter={StaticResource BoolToVis}}">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <TextBlock Grid.Column="0"
-                               Text="Mẹo nhanh: Bấm nút kính tròn nổi bên phải để mở Trung tâm điều khiển, đổi kênh hoặc chỉnh âm lượng."
+                               Text="Mẹo nhanh: Bấm viên ngọc nổi bên phải màn hình để đổi ứng dụng, về Trang Chủ hoặc chỉnh âm lượng."
                                FontSize="18"
                                Foreground="{StaticResource TextSecondaryBrush}"
                                VerticalAlignment="Center"

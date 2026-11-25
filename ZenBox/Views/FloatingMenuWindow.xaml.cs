@@ -2,6 +2,8 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using ZenBox.Models;
+using ZenBox.Services;
 using ZenBox.ViewModels;
 
 namespace ZenBox.Views;
@@ -26,6 +28,17 @@ public partial class FloatingMenuWindow : Window
         InitializeComponent();
         _mainVm = mainVm;
         DataContext = mainVm;
+
+        // Nạp bộ Logo thương hiệu thuần khiết không nền vào Dock
+        DockYouTubeImg.Source = BrandLogoFactory.GetLogo(AppSection.YouTube);
+        DockNetflixImg.Source = BrandLogoFactory.GetLogo(AppSection.Netflix);
+        DockSpotifyImg.Source = BrandLogoFactory.GetLogo(AppSection.Spotify);
+        DockTikTokImg.Source = BrandLogoFactory.GetLogo(AppSection.TikTok);
+        DockFacebookImg.Source = BrandLogoFactory.GetLogo(AppSection.Facebook);
+        DockGoogleImg.Source = BrandLogoFactory.GetLogo(AppSection.WebBrowser);
+        DockMoviesImg.Source = BrandLogoFactory.GetLogo(AppSection.OfflineMovies);
+        DockMusicImg.Source = BrandLogoFactory.GetLogo(AppSection.OfflineMusic);
+
         Loaded += OnWindowLoaded;
     }
 
@@ -34,7 +47,7 @@ public partial class FloatingMenuWindow : Window
         var workArea = SystemParameters.WorkArea;
         var cfg = _mainVm.ConfigService.Current;
 
-        _savedBallLeft = cfg.FloatingButtonLeft ?? (workArea.Right - CompactWindowSize - 24);
+        _savedBallLeft = cfg.FloatingButtonLeft ?? (workArea.Right - CompactWindowSize - 20);
         _savedBallTop = cfg.FloatingButtonTop ?? (workArea.Top + (workArea.Height - CompactWindowSize) / 2.0);
         ClampSavedPositionToScreen();
 
@@ -187,6 +200,18 @@ public partial class FloatingMenuWindow : Window
         CollapseQuickMenu();
     }
 
+    private void OnAppBackClick(object sender, RoutedEventArgs e)
+    {
+        CollapseQuickMenu();
+        _mainVm.AppGoBack();
+    }
+
+    private void OnAppReloadClick(object sender, RoutedEventArgs e)
+    {
+        CollapseQuickMenu();
+        _mainVm.AppReload();
+    }
+
     private void OnGoHomeClick(object sender, RoutedEventArgs e)
     {
         CollapseQuickMenu();
@@ -197,6 +222,18 @@ public partial class FloatingMenuWindow : Window
     {
         CollapseQuickMenu();
         _mainVm.OpenYouTube();
+    }
+
+    private void OnOpenNetflixClick(object sender, RoutedEventArgs e)
+    {
+        CollapseQuickMenu();
+        _mainVm.OpenNetflix();
+    }
+
+    private void OnOpenSpotifyClick(object sender, RoutedEventArgs e)
+    {
+        CollapseQuickMenu();
+        _mainVm.OpenSpotify();
     }
 
     private void OnOpenFacebookClick(object sender, RoutedEventArgs e)

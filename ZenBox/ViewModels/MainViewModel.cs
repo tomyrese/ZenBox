@@ -49,18 +49,24 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private bool _isErrorVisible;
 
     public bool IsHomeVisible => ActiveSection == AppSection.Home;
-    public bool IsNotHome => ActiveSection != AppSection.Home;
 
-    // Khi hộp thoại báo lỗi xuất hiện, tạm ẩn các vùng HWND (WebView2 / VideoView) để hộp thoại Glass luôn hiển thị rõ nhất
-    public bool IsWebSectionVisible =>
-        !IsErrorVisible &&
-        ActiveSection is AppSection.YouTube or AppSection.Facebook or AppSection.TikTok or AppSection.WebBrowser;
+    public bool IsOnlineAppActive => ActiveSection is
+        AppSection.YouTube or
+        AppSection.Netflix or
+        AppSection.Spotify or
+        AppSection.TikTok or
+        AppSection.Facebook or
+        AppSection.Instagram or
+        AppSection.SoundCloud or
+        AppSection.Twitch or
+        AppSection.VtvGo or
+        AppSection.WebBrowser;
 
-    public bool IsMediaLibraryVisible =>
-        ActiveSection is AppSection.OfflineMovies or AppSection.OfflineMusic;
+    // Khi mở các ứng dụng con hoặc xem phim, ẩn hoàn toàn thanh trên/dưới của hệ thống để ứng dụng tràn 100% màn hình như App bản địa
+    public bool IsSystemShellChromeVisible =>
+        ActiveSection is AppSection.Home or AppSection.OfflineMovies or AppSection.OfflineMusic or AppSection.SystemConfig;
 
-    public bool IsMediaPlayerVisible =>
-        !IsErrorVisible && ActiveSection == AppSection.MediaPlayer;
+    public bool IsWebSectionVisible => !IsErrorVisible && IsOnlineAppActive;
 
     public object? ActiveNonWebViewModel => ActiveSection switch
     {
@@ -152,10 +158,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private void NotifyVisibilityProperties()
     {
         OnPropertyChanged(nameof(IsHomeVisible));
-        OnPropertyChanged(nameof(IsNotHome));
+        OnPropertyChanged(nameof(IsOnlineAppActive));
+        OnPropertyChanged(nameof(IsSystemShellChromeVisible));
         OnPropertyChanged(nameof(IsWebSectionVisible));
-        OnPropertyChanged(nameof(IsMediaLibraryVisible));
-        OnPropertyChanged(nameof(IsMediaPlayerVisible));
         OnPropertyChanged(nameof(ActiveNonWebViewModel));
         OnPropertyChanged(nameof(IsNonWebHostVisible));
     }
@@ -261,27 +266,43 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
-    public void OpenYouTube()
+    public void OpenYouTube() => OpenOnlineChannel(AppSection.YouTube, "https://www.youtube.com", "YouTube");
+
+    [RelayCommand]
+    public void OpenNetflix() => OpenOnlineChannel(AppSection.Netflix, "https://www.netflix.com", "Netflix");
+
+    [RelayCommand]
+    public void OpenSpotify() => OpenOnlineChannel(AppSection.Spotify, "https://open.spotify.com", "Spotify");
+
+    [RelayCommand]
+    public void OpenTikTok() => OpenOnlineChannel(AppSection.TikTok, "https://www.tiktok.com", "TikTok");
+
+    [RelayCommand]
+    public void OpenFacebook() => OpenOnlineChannel(AppSection.Facebook, "https://www.facebook.com", "Facebook");
+
+    [RelayCommand]
+    public void OpenWebBrowser() => OpenOnlineChannel(AppSection.WebBrowser, "https://www.google.com", "Tìm kiếm Google");
+
+    [RelayCommand]
+    public void AppGoBack()
     {
-        OpenOnlineChannel(AppSection.YouTube, "https://www.youtube.com", "YouTube");
+        if (IsOnlineAppActive)
+        {
+            _webBrowserService.NavigateActiveTabBack();
+        }
+        else if (ActiveSection != AppSection.Home)
+        {
+            NavigateHome();
+        }
     }
 
     [RelayCommand]
-    public void OpenFacebook()
+    public void AppReload()
     {
-        OpenOnlineChannel(AppSection.Facebook, "https://www.facebook.com", "Facebook");
-    }
-
-    [RelayCommand]
-    public void OpenTikTok()
-    {
-        OpenOnlineChannel(AppSection.TikTok, "https://www.tiktok.com", "TikTok");
-    }
-
-    [RelayCommand]
-    public void OpenWebBrowser()
-    {
-        OpenOnlineChannel(AppSection.WebBrowser, "https://www.google.com", "Trình duyệt Web");
+        if (IsOnlineAppActive)
+        {
+            _webBrowserService.ReloadActiveTab();
+        }
     }
 
     [RelayCommand]
@@ -318,16 +339,10 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
-    public void VolumeUp()
-    {
-        _audioService.VolumeUp();
-    }
+    public void VolumeUp() => _audioService.VolumeUp();
 
     [RelayCommand]
-    public void VolumeDown()
-    {
-        _audioService.VolumeDown();
-    }
+    public void VolumeDown() => _audioService.VolumeDown();
 
     [RelayCommand]
     public void RetryErrorAction()
@@ -394,15 +409,34 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             case "YOUTUBE":
                 OpenYouTube();
                 break;
+            case "NETFLIX":
+                OpenNetflix();
+                break;
+            case "SPOTIFY":
+                OpenSpotify();
+                break;
             case "FACEBOOK":
                 OpenFacebook();
                 break;
             case "TIKTOK":
                 OpenTikTok();
                 break;
+            case "INSTAGRAM":
+                OpenOnlineChannel(AppSection.Instagram, "https://www.instagram.com", "Instagram");
+                break;
+            case "SOUNDCLOUD":
+                OpenOnlineChannel(AppSection.SoundCloud, "https://soundcloud.com", "SoundCloud");
+                break;
+            case "TWITCH":
+                OpenOnlineChannel(AppSection.Twitch, "https://www.twitch.tv", "Twitch");
+                break;
+            case "VTV":
+            case "VTVGO":
+                OpenOnlineChannel(AppSection.VtvGo, "https://vtvgo.vn", "VTV Go");
+                break;
             case "BROWSER":
             case "WEB":
-                OpenOnlineChannel(AppSection.WebBrowser, "https://www.google.com", "Trình duyệt Web");
+                OpenWebBrowser();
                 break;
             case "MOVIES":
             case "PHIM":
@@ -421,7 +455,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                     Uri.TryCreate(target, UriKind.Absolute, out var customUri) &&
                     (customUri.Scheme == Uri.UriSchemeHttp || customUri.Scheme == Uri.UriSchemeHttps))
                 {
-                    OpenOnlineChannel(AppSection.WebBrowser, customUri.ToString(), "Trình duyệt Web");
+                    OpenOnlineChannel(AppSection.WebBrowser, customUri.ToString(), "Tìm kiếm Google");
                 }
                 break;
         }

@@ -32,9 +32,45 @@ public sealed class WebBrowserService : IDisposable
     private const string CleanEdgeUserAgent =
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0";
 
+    // CSS & JS biến trang web thành trải nghiệm Native App thực thụ: ẩn thanh cuộn thô, tắt kéo thả ảnh/link, nền tối chống chớp trắng, ẩn banner giục cài app
+    private const string NativeAppModeInjectionScript = """
+        (() => {
+            const injectAppStyle = () => {
+                if (document.getElementById('zenbox-native-app-style')) return;
+                const style = document.createElement('style');
+                style.id = 'zenbox-native-app-style';
+                style.textContent = `
+                    html, body {
+                        overscroll-behavior: none !important;
+                        -webkit-tap-highlight-color: transparent !important;
+                    }
+                    ::-webkit-scrollbar {
+                        width: 0px !important;
+                        height: 0px !important;
+                        display: none !important;
+                    }
+                    img, a {
+                        -webkit-user-drag: none !important;
+                    }
+                    /* Ẩn các banner gạ tải ứng dụng di động/máy tính trên web */
+                    [data-e2e="download-app-container"],
+                    [class*="DivPromotionContainer"],
+                    [id*="smartbanner"],
+                    .smartbanner {
+                        display: none !important;
+                    }
+                `;
+                (document.head || document.documentElement).appendChild(style);
+            };
+            injectAppStyle();
+            document.addEventListener('DOMContentLoaded', injectAppStyle);
+        })();
+        """;
+
     private readonly ErrorHandlingService _errorService;
     private readonly NetworkMonitorService _networkService;
     private readonly Dictionary<AppSection, WebView2> _browserPool = new();
+    private readonly HashSet<AppSection> _initializedTabs = new();
     private readonly SemaphoreSlim _envLock = new(1, 1);
 
     private CoreWebView2Environment? _sharedEnvironment;
@@ -45,7 +81,7 @@ public sealed class WebBrowserService : IDisposable
 
     public event EventHandler<string>? ActiveTitleChanged;
     public event EventHandler<bool>? LoadingStateChanged;
-    public event EventHandler<bool>? FullscreenStateChanged;
+    public event EventHandler<bool>? AppSplashVisibilityChanged;
 
     public WebBrowserService(ErrorHandlingService errorService, NetworkMonitorService networkService)
     {
@@ -81,7 +117,7 @@ public sealed class WebBrowserService : IDisposable
             Directory.CreateDirectory(userDataFolder);
 
             var options = new CoreWebView2EnvironmentOptions(
-                additionalBrowserArguments: "--autoplay-policy=no-user-gesture-required --disable-features=msSmartScreenProtection")
+                additionalBrowserArguments: "--autoplay-policy=no-user-gesture-required")
             {
                 AreBrowserExtensionsEnabled = true
             };
@@ -101,13 +137,14 @@ public sealed class WebBrowserService : IDisposable
 
     public async Task<WebView2> GetOrCreateTabAsync(AppSection section, string targetUrl, Panel hostPanel)
     {
-        // Tạm dừng âm thanh ở các tab nền khác trước khi chuyển sang tab mới
         PauseBackgroundTabsMedia(exceptSection: section);
 
+        // Nếu ứng dụng đã mở sẵn trong Pool: chuyển tức thì như Native App đang chạy ngầm
         if (_browserPool.TryGetValue(section, out var existingWebView))
         {
             ShowOnlySelectedWebView(existingWebView);
             LoadingStateChanged?.Invoke(this, false);
+            AppSplashVisibilityChanged?.Invoke(this, false);
             if (!string.IsNullOrWhiteSpace(existingWebView.CoreWebView2?.DocumentTitle))
             {
                 ActiveTitleChanged?.Invoke(this, existingWebView.CoreWebView2.DocumentTitle);
@@ -119,7 +156,7 @@ public sealed class WebBrowserService : IDisposable
         {
             HorizontalAlignment = HorizontalAlignment.Stretch,
             VerticalAlignment = VerticalAlignment.Stretch,
-            DefaultBackgroundColor = System.Drawing.Color.FromArgb(255, 8, 12, 22),
+            DefaultBackgroundColor = System.Drawing.Color.FromArgb(255, 6, 9, 19),
             Visibility = Visibility.Visible
         };
 
@@ -129,15 +166,19 @@ public sealed class WebBrowserService : IDisposable
 
         try
         {
+            // Hiện màn hình khởi động App (Splash Logo) mượt mà ở lần khởi chạy đầu tiên để che hoàn toàn quá trình nạp trang
+            AppSplashVisibilityChanged?.Invoke(this, true);
             LoadingStateChanged?.Invoke(this, true);
+
             var env = await GetOrCreateEnvironmentAsync();
             await webView.EnsureCoreWebView2Async(env);
 
-            await ConfigureAdBlockingAndPoliciesAsync(webView, section);
+            await ConfigureAdBlockingAndAppExperienceAsync(webView, section);
             webView.CoreWebView2.Navigate(targetUrl);
         }
         catch (Exception ex)
         {
+            AppSplashVisibilityChanged?.Invoke(this, false);
             LoadingStateChanged?.Invoke(this, false);
             _errorService.ReportError(
                 ErrorCategory.WebLoadFailed,
@@ -149,16 +190,24 @@ public sealed class WebBrowserService : IDisposable
         return webView;
     }
 
-    private async Task ConfigureAdBlockingAndPoliciesAsync(WebView2 webView, AppSection section)
+    private async Task ConfigureAdBlockingAndAppExperienceAsync(WebView2 webView, AppSection section)
     {
         var core = webView.CoreWebView2;
         core.Settings.AreDevToolsEnabled = false;
         core.Settings.AreDefaultContextMenusEnabled = false;
         core.Settings.IsStatusBarEnabled = false;
         core.Settings.IsBuiltInErrorPageEnabled = false;
+        core.Settings.IsZoomControlEnabled = false;
+        core.Settings.IsPinchZoomEnabled = false;
+        core.Settings.IsSwipeNavigationEnabled = true;
+        core.Settings.IsPasswordAutosaveEnabled = true;
+        core.Settings.IsGeneralAutofillEnabled = true;
         core.Settings.UserAgent = CleanEdgeUserAgent;
 
-        // Lớp chặn 1: Nạp tiện ích uBlock Origin vào Profile WebView2
+        // Tiêm CSS/JS chế độ Native App trước khi trang vẽ khung hình đầu tiên
+        await core.AddScriptToExecuteOnDocumentCreatedAsync(NativeAppModeInjectionScript);
+
+        // Lớp chặn 1: uBlock Origin
         if (!_uBlockLoadedInProfile)
         {
             var uBlockDir = GetUBlockExtensionDirectory();
@@ -178,7 +227,7 @@ public sealed class WebBrowserService : IDisposable
             }
         }
 
-        // Lớp chặn 2: Chỉ đăng ký bộ lọc chính xác cho các domain quảng cáo để không làm chậm luồng video 4K của YouTube/TikTok
+        // Lớp chặn 2: Chặn tên miền quảng cáo
         foreach (var domain in BlockedAdDomains)
         {
             core.AddWebResourceRequestedFilter($"*://{domain}/*", CoreWebView2WebResourceContext.All);
@@ -197,7 +246,7 @@ public sealed class WebBrowserService : IDisposable
             }
         };
 
-        // Chặn mở ứng dụng ngoài hoặc cửa sổ rời; giữ các liên kết HTTP/HTTPS ngay trong khung toàn màn hình
+        // Giữ mọi luồng đăng nhập OAuth / liên kết trong cùng cửa sổ ứng dụng
         core.NewWindowRequested += (_, args) =>
         {
             args.Handled = true;
@@ -209,7 +258,6 @@ public sealed class WebBrowserService : IDisposable
             }
         };
 
-        // Ngăn các giao thức lạ (như tiktok://, fb://, intent://) gây lỗi điều hướng
         core.NavigationStarting += (_, args) =>
         {
             if (!string.IsNullOrWhiteSpace(args.Uri) &&
@@ -228,21 +276,26 @@ public sealed class WebBrowserService : IDisposable
             }
         };
 
-        // Tự động cấp quyền phát tự động / toàn màn hình video
+        // Cấp quyền phát tự động & nội dung bản quyền DRM (Widevine/PlayReady cho Netflix & Spotify)
         core.PermissionRequested += (_, args) =>
         {
-            if (args.PermissionKind is CoreWebView2PermissionKind.Autoplay or CoreWebView2PermissionKind.ClipboardRead)
+            var kindName = args.PermissionKind.ToString();
+            if (args.PermissionKind is CoreWebView2PermissionKind.Autoplay or CoreWebView2PermissionKind.ClipboardRead ||
+                string.Equals(kindName, "ProtectedMediaIdentifier", StringComparison.OrdinalIgnoreCase))
             {
                 args.State = CoreWebView2PermissionState.Allow;
             }
         };
 
-        // Tự động ẩn thanh điều hướng trên cùng khi người dùng bấm phóng to toàn màn hình video YouTube/TikTok
-        core.ContainsFullScreenElementChanged += (_, _) =>
+        core.DOMContentLoaded += (_, _) =>
         {
-            if (webView.Visibility == Visibility.Visible)
+            if (!_initializedTabs.Contains(section))
             {
-                FullscreenStateChanged?.Invoke(this, core.ContainsFullScreenElement);
+                _initializedTabs.Add(section);
+                if (webView.Visibility == Visibility.Visible)
+                {
+                    AppSplashVisibilityChanged?.Invoke(this, false);
+                }
             }
         };
 
@@ -256,12 +309,13 @@ public sealed class WebBrowserService : IDisposable
 
         core.NavigationCompleted += (_, args) =>
         {
+            _initializedTabs.Add(section);
             if (webView.Visibility == Visibility.Visible)
             {
                 LoadingStateChanged?.Invoke(this, false);
+                AppSplashVisibilityChanged?.Invoke(this, false);
             }
 
-            // Chỉ báo lỗi khi thực sự đứt mạng hoặc không thể kết nối tới máy chủ (tránh báo lỗi giả khi TikTok/Facebook dùng SPA redirect hoặc HTTP 204/4xx phụ)
             if (!args.IsSuccess && IsGenuineFatalWebError(args.WebErrorStatus))
             {
                 var category = !_networkService.IsOnline
@@ -367,7 +421,7 @@ public sealed class WebBrowserService : IDisposable
 
     public void HideAllTabs()
     {
-        FullscreenStateChanged?.Invoke(this, false);
+        AppSplashVisibilityChanged?.Invoke(this, false);
         PauseBackgroundTabsMedia();
         foreach (var item in _browserPool.Values)
         {
