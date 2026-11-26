@@ -63,6 +63,17 @@ class ZenBoxSocketService {
       }
     }
 
+    // 3. Tự động dò tìm ngầm TV trong mạng Wi-Fi và nối thẳng luôn mà không bắt người dùng bấm gì!
+    this.notifyStatus('connecting');
+    const discovered = await this.scanLocalNetwork();
+    if (discovered.length > 0) {
+      const ok = await this.connectAndVerify(discovered[0].ip);
+      if (ok) {
+        return { connected: true, host: this.hostDisplay };
+      }
+    }
+
+    this.notifyStatus('disconnected');
     return { connected: false, host: null };
   }
 

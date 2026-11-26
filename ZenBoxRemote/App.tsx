@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import {
-  KeyboardAvoidingView,
   Platform,
   SafeAreaView,
+  ScrollView,
   StatusBar as RNStatusBar,
   StyleSheet,
   Text,
@@ -12,35 +12,37 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
-import Svg, { Defs, LinearGradient as SvgGrad, Path, Polygon, Stop } from 'react-native-svg';
 
 import { Colors } from './src/theme/colors';
 import {
   ConnectionStatus,
   DEFAULT_REMOTE_STATE,
   RemoteState,
-  RemoteTab,
 } from './src/types/remote';
 import { zenSocket } from './src/services/ZenBoxSocket';
 import { RealtimeSearchBar } from './src/components/RealtimeSearchBar';
-import { RemoteDpadTab } from './src/components/RemoteDpadTab';
-import { TouchpadTab } from './src/components/TouchpadTab';
-import { AppsGridTab } from './src/components/AppsGridTab';
-import { TvSettingsTab } from './src/components/TvSettingsTab';
+import { TouchpadSurface } from './src/components/TouchpadTab';
+import { AppBrandKey, BrandLogo } from './src/components/BrandIcons';
 import { ConnectionModal } from './src/components/ConnectionModal';
 
-const TABS: { key: RemoteTab; icon: string; label: string }[] = [
-  { key: 'dpad', icon: '❖', label: 'Điều khiển' },
-  { key: 'touchpad', icon: '◰', label: 'Bàn rê' },
-  { key: 'apps', icon: '⊞', label: 'Ứng dụng' },
-  { key: 'settings', icon: '☰', label: 'Tiện ích TV' },
+const QUICK_CHANNELS: { target: string; brand: AppBrandKey }[] = [
+  { target: 'YOUTUBE', brand: 'YOUTUBE' },
+  { target: 'NETFLIX', brand: 'NETFLIX' },
+  { target: 'SPOTIFY', brand: 'SPOTIFY' },
+  { target: 'TIKTOK', brand: 'TIKTOK' },
+  { target: 'VTVGO', brand: 'VTVGO' },
+  { target: 'FPTPLAY', brand: 'FPTPLAY' },
+  { target: 'FACEBOOK', brand: 'FACEBOOK' },
+  { target: 'WEB', brand: 'WEB' },
+  { target: 'MOVIES', brand: 'MOVIES' },
+  { target: 'MUSIC', brand: 'MUSIC' },
 ];
 
 export default function App() {
   const [status, setStatus] = useState<ConnectionStatus>('disconnected');
   const [host, setHost] = useState<string>('');
   const [remoteState, setRemoteState] = useState<RemoteState>(DEFAULT_REMOTE_STATE);
-  const [activeTab, setActiveTab] = useState<RemoteTab>('dpad');
+  const [padMode, setPadMode] = useState<'dpad' | 'touchpad'>('dpad');
   const [connectModalVisible, setConnectModalVisible] = useState<boolean>(false);
 
   useEffect(() => {
@@ -69,23 +71,22 @@ export default function App() {
     };
   }, []);
 
-  const switchTab = (tab: RemoteTab) => {
-    void Haptics.selectionAsync();
-    setActiveTab(tab);
+  const pressRemote = (action: string, strong = false, target?: string) => {
+    void Haptics.impactAsync(
+      strong ? Haptics.ImpactFeedbackStyle.Medium : Haptics.ImpactFeedbackStyle.Light
+    );
+    zenSocket.sendCommand({ action, target });
   };
 
   const isConnected = status === 'connected';
-  const clientCount = remoteState.connectedClients ?? 1;
-  const statusLabel =
+  const statusText =
     status === 'connected'
-      ? clientCount > 1
-        ? `${host} • ${clientCount} ĐT`
-        : host
+      ? 'Đã kết nối TV'
       : status === 'connecting'
-      ? 'Đang nối TV...'
-      : 'Bấm kết nối TV';
+      ? 'Đang tìm TV...'
+      : 'Kết nối TV';
 
-  const statusDotColor =
+  const dotColor =
     status === 'connected'
       ? Colors.success
       : status === 'connecting'
@@ -93,124 +94,212 @@ export default function App() {
       : Colors.danger;
 
   return (
-    <LinearGradient
-      colors={[Colors.bgDeep, Colors.bgMid, '#060C1A']}
-      style={styles.rootGradient}
-    >
+    <LinearGradient colors={['#060A14', '#0B1326']} style={styles.root}>
       <StatusBar style="light" />
       <SafeAreaView style={styles.safeArea}>
-        <KeyboardAvoidingView
-          style={styles.flexOne}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        >
-          {/* Thanh tiêu đề thương hiệu ZenBox & Trạng thái kết nối đa thiết bị */}
-          <View style={styles.header}>
-            <View style={styles.brandRow}>
-              <Svg width={30} height={30} viewBox="0 0 48 48">
-                <Defs>
-                  <SvgGrad id="zbLogo" x1="0" y1="0" x2="1" y2="1">
-                    <Stop offset="0" stopColor="#38BDF8" />
-                    <Stop offset="1" stopColor="#2563EB" />
-                  </SvgGrad>
-                </Defs>
-                <Path
-                  d="M24 4L41 14V34L24 44L7 34V14L24 4Z"
-                  fill="url(#zbLogo)"
-                />
-                <Polygon points="20,16 32,24 20,32" fill="#FFFFFF" />
-              </Svg>
-              <View>
-                <Text style={styles.brandTitle}>ZenBox Remote</Text>
-                <Text style={styles.brandSub}>
-                  {isConnected && remoteState.serverName
-                    ? `TV: ${remoteState.serverName}`
-                    : 'Điều khiển đa thiết bị'}
-                </Text>
-              </View>
-            </View>
+        <View style={styles.screen}>
+          {/* 1. Thanh trạng thái tối giản */}
+          <View style={styles.topBar}>
+            <Text style={styles.appTitle}>ZenBox</Text>
 
             <TouchableOpacity
-              style={[
-                styles.connectionPill,
-                isConnected && styles.connectionPillActive,
-              ]}
+              style={[styles.statusPill, isConnected && styles.statusPillConnected]}
               activeOpacity={0.8}
               onPress={() => setConnectModalVisible(true)}
             >
-              <View
-                style={[styles.statusDot, { backgroundColor: statusDotColor }]}
-              />
-              <Text style={styles.connectionText} numberOfLines={1}>
-                {statusLabel}
-              </Text>
+              <View style={[styles.dot, { backgroundColor: dotColor }]} />
+              <Text style={styles.statusText}>{statusText}</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Thanh cảnh báo nhanh nếu chưa kết nối để người dùng biết ngay vì sao cần kết nối trước khi bấm */}
-          {!isConnected && (
-            <TouchableOpacity
-              style={styles.offlineBanner}
-              activeOpacity={0.85}
-              onPress={() => setConnectModalVisible(true)}
-            >
-              <Text style={styles.offlineBannerText}>
-                ⚠ Chưa nối với ZenBox PC — Chạm vào đây để quét Wi-Fi hoặc nhập IP kết nối
-              </Text>
-            </TouchableOpacity>
-          )}
+          {/* 2. Ô nhập chữ tìm kiếm trực tiếp trên TV */}
+          <RealtimeSearchBar />
 
-          {/* Thanh Tìm Kiếm Realtime luôn sẵn sàng ở mọi màn hình */}
-          <RealtimeSearchBar
-            connected={isConnected}
-            activeSection={remoteState.activeSection}
-          />
+          {/* 3. Vùng điều khiển trung tâm (Phím 5 chiều hoặc Bàn rê chuột) */}
+          <View style={styles.centerZone}>
+            <View style={styles.modeSwitch}>
+              <TouchableOpacity
+                style={[styles.modeBtn, padMode === 'dpad' && styles.modeBtnActive]}
+                onPress={() => {
+                  void Haptics.selectionAsync();
+                  setPadMode('dpad');
+                }}
+              >
+                <Text
+                  style={[
+                    styles.modeText,
+                    padMode === 'dpad' && styles.modeTextActive,
+                  ]}
+                >
+                  Phím bấm
+                </Text>
+              </TouchableOpacity>
 
-          {/* Nội dung chính theo Tab */}
-          <View style={styles.mainContent}>
-            {activeTab === 'dpad' && (
-              <RemoteDpadTab state={remoteState} connected={isConnected} />
-            )}
-            {activeTab === 'touchpad' && <TouchpadTab />}
-            {activeTab === 'apps' && (
-              <AppsGridTab activeSection={remoteState.activeSection} />
-            )}
-            {activeTab === 'settings' && <TvSettingsTab state={remoteState} />}
-          </View>
+              <TouchableOpacity
+                style={[
+                  styles.modeBtn,
+                  padMode === 'touchpad' && styles.modeBtnActive,
+                ]}
+                onPress={() => {
+                  void Haptics.selectionAsync();
+                  setPadMode('touchpad');
+                }}
+              >
+                <Text
+                  style={[
+                    styles.modeText,
+                    padMode === 'touchpad' && styles.modeTextActive,
+                  ]}
+                >
+                  Rê chuột
+                </Text>
+              </TouchableOpacity>
+            </View>
 
-          {/* Thanh điều hướng kính pha lê dưới đáy */}
-          <View style={styles.bottomBarOuter}>
-            <View style={styles.bottomBar}>
-              {TABS.map((tab) => {
-                const selected = activeTab === tab.key;
-                return (
+            <View style={styles.padArea}>
+              {padMode === 'dpad' ? (
+                <View style={styles.dpadCircle}>
                   <TouchableOpacity
-                    key={tab.key}
-                    style={[styles.tabItem, selected && styles.tabItemSelected]}
-                    activeOpacity={0.78}
-                    onPress={() => switchTab(tab.key)}
+                    style={[styles.arrowBtn, styles.arrowVertical]}
+                    activeOpacity={0.65}
+                    onPress={() => pressRemote('DPAD_UP')}
                   >
-                    <Text
-                      style={[
-                        styles.tabIcon,
-                        selected && styles.tabIconSelected,
-                      ]}
-                    >
-                      {tab.icon}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.tabLabel,
-                        selected && styles.tabLabelSelected,
-                      ]}
-                    >
-                      {tab.label}
-                    </Text>
+                    <Text style={styles.arrowText}>▲</Text>
                   </TouchableOpacity>
-                );
-              })}
+
+                  <View style={styles.dpadMidRow}>
+                    <TouchableOpacity
+                      style={[styles.arrowBtn, styles.arrowHorizontal]}
+                      activeOpacity={0.65}
+                      onPress={() => pressRemote('DPAD_LEFT')}
+                    >
+                      <Text style={styles.arrowText}>◀</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      activeOpacity={0.82}
+                      onPress={() => pressRemote('DPAD_OK', true)}
+                      style={styles.okOuter}
+                    >
+                      <LinearGradient
+                        colors={['#38BDF8', '#2563EB']}
+                        style={styles.okInner}
+                      >
+                        <Text style={styles.okLabel}>OK</Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.arrowBtn, styles.arrowHorizontal]}
+                      activeOpacity={0.65}
+                      onPress={() => pressRemote('DPAD_RIGHT')}
+                    >
+                      <Text style={styles.arrowText}>▶</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <TouchableOpacity
+                    style={[styles.arrowBtn, styles.arrowVertical]}
+                    activeOpacity={0.65}
+                    onPress={() => pressRemote('DPAD_DOWN')}
+                  >
+                    <Text style={styles.arrowText}>▼</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchpadSurface />
+              )}
             </View>
           </View>
-        </KeyboardAvoidingView>
+
+          {/* 4. Cụm 6 phím chức năng cơ bản nhất của một chiếc điều khiển TV thật */}
+          <View style={styles.hardButtonsGrid}>
+            <View style={styles.btnRow}>
+              <TouchableOpacity
+                style={styles.remoteBtn}
+                activeOpacity={0.75}
+                onPress={() => pressRemote('BACK')}
+              >
+                <Text style={styles.btnIcon}>←</Text>
+                <Text style={styles.btnLabel}>Quay lại</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.remoteBtn, styles.homeBtn]}
+                activeOpacity={0.8}
+                onPress={() => pressRemote('HOME', true)}
+              >
+                <Text style={[styles.btnIcon, { color: Colors.accentCyan }]}>⌂</Text>
+                <Text style={[styles.btnLabel, { fontWeight: '700' }]}>Trang Chủ</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.remoteBtn}
+                activeOpacity={0.75}
+                onPress={() => pressRemote('PLAY_PAUSE', true)}
+              >
+                <Text style={styles.btnIcon}>⏯</Text>
+                <Text style={styles.btnLabel}>Phát / Dừng</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.btnRow}>
+              <TouchableOpacity
+                style={styles.remoteBtn}
+                activeOpacity={0.75}
+                onPress={() => pressRemote('VOL_DOWN')}
+              >
+                <Text style={styles.volSign}>−</Text>
+                <Text style={styles.btnLabel}>Giảm âm</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.remoteBtn,
+                  remoteState.isMuted && styles.mutedBtn,
+                ]}
+                activeOpacity={0.75}
+                onPress={() => pressRemote('MUTE_TOGGLE', true)}
+              >
+                <Text style={styles.btnIcon}>
+                  {remoteState.isMuted ? '🔇' : '🔊'}
+                </Text>
+                <Text style={styles.btnLabel}>
+                  {remoteState.isMuted ? 'Đã tắt tiếng' : `${remoteState.volume}%`}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.remoteBtn}
+                activeOpacity={0.75}
+                onPress={() => pressRemote('VOL_UP')}
+              >
+                <Text style={styles.volSign}>+</Text>
+                <Text style={styles.btnLabel}>Tăng âm</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* 5. Hàng mở nhanh kênh bằng Logo trực quan (chỉ gồm logo không rối chữ) */}
+          <View style={styles.channelsStrip}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.channelsContent}
+            >
+              {QUICK_CHANNELS.map((ch) => (
+                <TouchableOpacity
+                  key={ch.target}
+                  style={styles.channelChip}
+                  activeOpacity={0.75}
+                  onPress={() => pressRemote('OPEN_APP', true, ch.target)}
+                >
+                  <BrandLogo brand={ch.brand} size={30} />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
 
         <ConnectionModal
           visible={connectModalVisible}
@@ -224,125 +313,201 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  rootGradient: {
+  root: {
     flex: 1,
   },
   safeArea: {
     flex: 1,
-    paddingTop: Platform.OS === 'android' ? (RNStatusBar.currentHeight ?? 12) : 0,
+    paddingTop: Platform.OS === 'android' ? (RNStatusBar.currentHeight ?? 10) : 0,
   },
-  flexOne: {
+  screen: {
     flex: 1,
+    paddingHorizontal: 18,
+    paddingBottom: Platform.OS === 'ios' ? 6 : 14,
+    justifyContent: 'space-between',
+    gap: 12,
   },
-  header: {
+  topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 6,
+    paddingTop: 4,
   },
-  brandRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 9,
-  },
-  brandTitle: {
+  appTitle: {
     color: Colors.textPrimary,
-    fontSize: 17,
+    fontSize: 20,
     fontWeight: '800',
-    letterSpacing: 0.2,
+    letterSpacing: 0.3,
   },
-  brandSub: {
-    color: Colors.textMuted,
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  connectionPill: {
+  statusPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    maxWidth: 185,
-    paddingHorizontal: 12,
+    paddingHorizontal: 13,
     paddingVertical: 7,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.07)',
     borderWidth: 1,
-    borderColor: Colors.glassBorder,
-    gap: 6,
+    borderColor: 'rgba(255,255,255,0.12)',
+    gap: 7,
   },
-  connectionPillActive: {
-    backgroundColor: Colors.successBg,
-    borderColor: 'rgba(52, 211, 153, 0.36)',
+  statusPillConnected: {
+    backgroundColor: 'rgba(52, 211, 153, 0.14)',
+    borderColor: 'rgba(52, 211, 153, 0.35)',
   },
-  statusDot: {
+  dot: {
     width: 8,
     height: 8,
     borderRadius: 4,
   },
-  connectionText: {
+  statusText: {
     color: Colors.textPrimary,
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700',
   },
-  offlineBanner: {
-    marginHorizontal: 16,
-    marginBottom: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-    backgroundColor: Colors.warningBg,
-    borderWidth: 1,
-    borderColor: 'rgba(251, 191, 36, 0.38)',
-  },
-  offlineBannerText: {
-    color: '#FDE68A',
-    fontSize: 12,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  mainContent: {
+  centerZone: {
     flex: 1,
+    alignItems: 'center',
+    gap: 10,
   },
-  bottomBarOuter: {
-    paddingHorizontal: 14,
-    paddingBottom: Platform.OS === 'ios' ? 4 : 12,
-    paddingTop: 4,
-  },
-  bottomBar: {
+  modeSwitch: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(13, 22, 43, 0.94)',
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: Colors.glassBorder,
-    padding: 5,
-    gap: 4,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 14,
+    padding: 3,
+    width: 210,
   },
-  tabItem: {
+  modeBtn: {
     flex: 1,
-    paddingVertical: 8,
-    borderRadius: 17,
+    paddingVertical: 6,
+    borderRadius: 11,
+    alignItems: 'center',
+  },
+  modeBtnActive: {
+    backgroundColor: 'rgba(56, 189, 248, 0.22)',
+  },
+  modeText: {
+    color: Colors.textMuted,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  modeTextActive: {
+    color: Colors.textPrimary,
+    fontWeight: '700',
+  },
+  padArea: {
+    flex: 1,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dpadCircle: {
+    width: 224,
+    height: 224,
+    borderRadius: 112,
+    backgroundColor: 'rgba(17, 27, 51, 0.95)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.14)',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 10,
+  },
+  dpadMidRow: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  arrowBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  arrowVertical: {
+    width: 96,
+    height: 54,
+  },
+  arrowHorizontal: {
+    width: 54,
+    height: 96,
+  },
+  arrowText: {
+    color: Colors.textSecondary,
+    fontSize: 19,
+  },
+  okOuter: {
+    width: 86,
+    height: 86,
+    borderRadius: 43,
+    padding: 3,
+    backgroundColor: 'rgba(56, 189, 248, 0.25)',
+  },
+  okInner: {
+    flex: 1,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  okLabel: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  hardButtonsGrid: {
+    gap: 10,
+  },
+  btnRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  remoteBtn: {
+    flex: 1,
+    height: 62,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.11)',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 2,
   },
-  tabItemSelected: {
-    backgroundColor: 'rgba(56, 189, 248, 0.18)',
+  homeBtn: {
+    backgroundColor: 'rgba(56, 189, 248, 0.14)',
+    borderColor: 'rgba(56, 189, 248, 0.36)',
   },
-  tabIcon: {
-    color: Colors.textMuted,
-    fontSize: 16,
+  mutedBtn: {
+    backgroundColor: Colors.dangerBg,
+    borderColor: Colors.danger,
+  },
+  btnIcon: {
+    color: Colors.textPrimary,
+    fontSize: 19,
     fontWeight: '700',
   },
-  tabIconSelected: {
-    color: Colors.accentCyan,
+  volSign: {
+    color: Colors.textPrimary,
+    fontSize: 24,
+    fontWeight: '700',
+    lineHeight: 24,
   },
-  tabLabel: {
-    color: Colors.textMuted,
-    fontSize: 11,
+  btnLabel: {
+    color: Colors.textSecondary,
+    fontSize: 12,
     fontWeight: '600',
   },
-  tabLabelSelected: {
-    color: Colors.textPrimary,
-    fontWeight: '700',
+  channelsStrip: {
+    paddingTop: 2,
+  },
+  channelsContent: {
+    gap: 10,
+    paddingRight: 4,
+  },
+  channelChip: {
+    width: 54,
+    height: 54,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
